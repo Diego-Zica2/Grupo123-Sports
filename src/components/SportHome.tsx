@@ -1,8 +1,7 @@
-
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { supabase, Game, GameConfirmation, Guest, Sport } from '@/lib/supabase'
+import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -10,6 +9,54 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { GuestForm } from '@/components/GuestForm'
 import { toast } from '@/hooks/use-toast'
 import { Calendar, Clock, MapPin, Users } from 'lucide-react'
+
+interface Sport {
+  id: string
+  name: string
+  icon: string
+  visible: boolean
+  day_of_week: number
+  time: string
+  created_at: string
+}
+
+interface Game {
+  id: string
+  sport_id: string
+  date: string
+  time: string
+  location: string
+  google_maps_link: string
+  max_players: number
+  created_by: string
+  created_at: string
+  sport?: Sport
+}
+
+interface UserProfile {
+  id: string
+  email: string
+  full_name: string
+  role: 'admin' | 'player'
+  created_at: string
+}
+
+interface GameConfirmation {
+  id: string
+  game_id: string
+  user_id: string
+  confirmed_at: string
+  user?: UserProfile
+}
+
+interface Guest {
+  id: string
+  game_id: string
+  user_id: string
+  name: string
+  cpf: string
+  created_at: string
+}
 
 export function SportHome() {
   const { sportId } = useParams()
@@ -21,6 +68,7 @@ export function SportHome() {
   const [guests, setGuests] = useState<Guest[]>([])
   const [userConfirmed, setUserConfirmed] = useState(false)
   const [userGuest, setUserGuest] = useState<Guest | null>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [showGuestForm, setShowGuestForm] = useState(false)
 
@@ -29,7 +77,27 @@ export function SportHome() {
       fetchSportData()
       fetchNextGame()
     }
-  }, [sportId])
+    if (user) {
+      fetchUserProfile()
+    }
+  }, [sportId, user])
+
+  const fetchUserProfile = async () => {
+    if (!user) return
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (error) throw error
+      setUserProfile(data)
+    } catch (error) {
+      console.error('Error fetching user profile:', error)
+    }
+  }
 
   const fetchSportData = async () => {
     try {
@@ -260,13 +328,13 @@ export function SportHome() {
               <div>
                 <h1 className="text-lg font-semibold">{sport.name}</h1>
                 <p className="text-sm text-muted-foreground">
-                  {user?.full_name}
+                  {userProfile?.full_name || user?.email}
                 </p>
               </div>
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            {user?.role === 'admin' && (
+            {userProfile?.role === 'admin' && (
               <Button 
                 variant="outline" 
                 onClick={() => navigate('/admin')}
@@ -420,7 +488,7 @@ export function SportHome() {
                           className="flex items-center justify-between p-2 bg-muted rounded"
                         >
                           <span className="text-sm font-medium">
-                            {confirmation.user?.full_name}
+                            {confirmation.user?.full_name || 'Usuário'}
                           </span>
                           {confirmation.user_id === user?.id && (
                             <Badge variant="secondary" className="text-xs">

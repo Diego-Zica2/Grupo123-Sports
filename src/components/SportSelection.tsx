@@ -2,20 +2,59 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { supabase, Sport } from '@/lib/supabase'
+import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ThemeToggle } from '@/components/ThemeToggle'
+
+interface Sport {
+  id: string
+  name: string
+  icon: string
+  visible: boolean
+  day_of_week: number
+  time: string
+  created_at: string
+}
+
+interface UserProfile {
+  id: string
+  email: string
+  full_name: string
+  role: 'admin' | 'player'
+  created_at: string
+}
 
 export function SportSelection() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const [sports, setSports] = useState<Sport[]>([])
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchSports()
-  }, [])
+    if (user) {
+      fetchUserProfile()
+    }
+  }, [user])
+
+  const fetchUserProfile = async () => {
+    if (!user) return
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (error) throw error
+      setUserProfile(data)
+    } catch (error) {
+      console.error('Error fetching user profile:', error)
+    }
+  }
 
   const fetchSports = async () => {
     try {
@@ -74,12 +113,12 @@ export function SportSelection() {
               <span className="text-white font-bold text-sm">MaxMilhas</span>
             </div>
             <div>
-              <h1 className="text-lg font-semibold">Bem-vindo, {user?.full_name}</h1>
+              <h1 className="text-lg font-semibold">Bem-vindo, {userProfile?.full_name || user?.email}</h1>
               <p className="text-sm text-muted-foreground">Escolha um esporte para participar</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            {user?.role === 'admin' && (
+            {userProfile?.role === 'admin' && (
               <Button 
                 variant="outline" 
                 onClick={() => navigate('/admin')}
