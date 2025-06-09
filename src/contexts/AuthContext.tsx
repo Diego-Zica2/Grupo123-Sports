@@ -1,11 +1,12 @@
 
-import { createContext, useContext, useEffect, useState } from 'react'
-import { User as SupabaseUser } from '@supabase/supabase-js'
-import { supabase, User } from '@/lib/supabase'
+import React, { createContext, useContext, useEffect, useState } from 'react'
+import { User, Session } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
+import { toast } from 'sonner'
 
 interface AuthContextType {
   user: User | null
-  supabaseUser: SupabaseUser | null
+  session: Session | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string, fullName: string) => Promise<void>
@@ -17,51 +18,43 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Verificar sessão atual
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSupabaseUser(session?.user ?? null)
-      if (session?.user) {
-        fetchUserProfile(session.user.id)
-      } else {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session)
+        setUser(session?.user ?? null)
         setLoading(false)
       }
-    })
+    )
 
-    // Escutar mudanças de autenticação
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSupabaseUser(session?.user ?? null)
-      if (session?.user) {
-        fetchUserProfile(session.user.id)
-      } else {
-        setUser(null)
-        setLoading(false)
-      }
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single()
+  const validateEmailDomain = async (email: string): Promise<boolean> => {
+    const domain = email.split('@')[1]
+    
+    const { data: allowedDomains, error } = await supabase
+      .from('allowed_domains')
+      .select('domain')
+      .eq('domain', domain)
 
-      if (error) throw error
-      setUser(data)
-    } catch (error) {
-      console.error('Error fetching user profile:', error)
-    } finally {
-      setLoading(false)
+    if (error) {
+      console.error('Error checking domain:', error)
+      return false
     }
+
+    return allowedDomains && allowedDomains.length > 0
   }
 
   const signIn = async (email: string, password: string) => {
@@ -69,58 +62,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
     })
-    if (error) throw error
+
+    if (error) {
+      throw new Error(error.message)
+    }
   }
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    // Verificar se o domínio é permitido
-    const domain = email.split('@')[1]
-    const { data: allowedDomains } = await supabase
-      .from('allowed_domains')
-      .select('domain')
-      .eq('domain', domain)
-
-    if (!allowedDomains || allowedDomains.length === 0) {
-      throw new Error('Domínio de email não autorizado')
+    // Validar domínio do email
+    const isValidDomain = await validateEmailDomain(email)
+    if (!isValidDomain) {
+      throw new Error('Apenas emails @maxmilhas.com.br e @123milhas.com.br são aceitos')
     }
 
-    const { data, error } = await supabase.auth.signUp({
+    const redirectUrl = `${window.location.origin}/`
+    
+    const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: {
+          full_name: fullName,
+        }
+      }
     })
 
-    if (error) throw error
-
-    if (data.user) {
-      // Criar perfil do usuário
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert([
-          {
-            id: data.user.id,
-            email,
-            full_name: fullName,
-            role: 'player',
-          },
-        ])
-
-      if (profileError) throw profileError
+    if (error) {
+      throw new Error(error.message)
     }
   }
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    if (error) {
+      toast.error('Erro ao sair: ' + error.message)
+    }
   }
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email)
-    if (error) throw error
+    const redirectUrl = `${window.location.origin}/reset-password`
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl,
+    })
+
+    if (error) {
+      throw new Error(error.message)
+    }
   }
 
   const value = {
     user,
-    supabaseUser,
+    session,
     loading,
     signIn,
     signUp,
@@ -128,7 +122,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetPassword,
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {
