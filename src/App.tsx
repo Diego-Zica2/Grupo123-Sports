@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { SportSelection } from '@/components/SportSelection';
 import { SportHome } from '@/components/SportHome';
+import { AdminPanel } from '@/components/AdminPanel';
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,14 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <SportHome />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute>
+              <AdminPanel />
             </ProtectedRoute>
           } 
         />
