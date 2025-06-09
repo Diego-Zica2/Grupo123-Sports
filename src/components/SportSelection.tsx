@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -50,7 +49,13 @@ export function SportSelection() {
         .single()
 
       if (error) throw error
-      setUserProfile(data)
+      
+      // Type assertion to ensure role is the correct type
+      const profileData: UserProfile = {
+        ...data,
+        role: data.role as 'admin' | 'player'
+      }
+      setUserProfile(profileData)
     } catch (error) {
       console.error('Error fetching user profile:', error)
     }

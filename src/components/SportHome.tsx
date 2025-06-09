@@ -93,7 +93,13 @@ export function SportHome() {
         .single()
 
       if (error) throw error
-      setUserProfile(data)
+      
+      // Type assertion to ensure role is the correct type
+      const profileData: UserProfile = {
+        ...data,
+        role: data.role as 'admin' | 'player'
+      }
+      setUserProfile(profileData)
     } catch (error) {
       console.error('Error fetching user profile:', error)
     }
@@ -141,7 +147,17 @@ export function SportHome() {
           .eq('game_id', gameData[0].id)
 
         if (confirmError) throw confirmError
-        setConfirmations(confirmData || [])
+        
+        // Type assertion for confirmations data
+        const typedConfirmations: GameConfirmation[] = (confirmData || []).map(confirmation => ({
+          ...confirmation,
+          user: confirmation.user ? {
+            ...confirmation.user,
+            role: confirmation.user.role as 'admin' | 'player'
+          } : undefined
+        }))
+        
+        setConfirmations(typedConfirmations)
 
         // Verificar se usuário atual confirmou
         const userConfirmation = confirmData?.find(c => c.user_id === user?.id)
