@@ -165,7 +165,7 @@ export function LoginForm() {
                 <img
                   src="/lovable-uploads/dark-logogrupo123.png"
                   alt="Logo Grupo123 Sports"
-                  className="cursor-pointer h-12 w-auto object-contain"
+                  className="cursor-pointer h-full w-auto object-contain"
                 />
               </a>
             </div>
