@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -142,85 +143,93 @@ export function SportHome() {
       if (gameData && gameData.length > 0) {
         setNextGame(gameData[0])
         
-        // Buscar confirmações com dados completos dos usuários
+        // Buscar confirmações com dados dos usuários
         const { data: confirmData, error: confirmError } = await supabase
           .from('game_confirmations')
-          .select(`
-            id,
-            game_id,
-            user_id,
-            confirmed_at,
-            user:users!inner(
-              id,
-              full_name,
-              email,
-              role,
-              created_at
-            )
-          `)
+          .select('*')
           .eq('game_id', gameData[0].id)
 
         if (confirmError) throw confirmError
-        
-        // Mapear corretamente os dados
-        const typedConfirmations: GameConfirmation[] = (confirmData || []).map(confirmation => ({
-          id: confirmation.id,
-          game_id: confirmation.game_id,
-          user_id: confirmation.user_id,
-          confirmed_at: confirmation.confirmed_at || '',
-          user: confirmation.user ? {
-            id: confirmation.user.id,
-            email: confirmation.user.email,
-            full_name: confirmation.user.full_name,
-            role: confirmation.user.role as 'admin' | 'player',
-            created_at: confirmation.user.created_at
-          } : undefined
-        }))
-        
-        setConfirmations(typedConfirmations)
+
+        // Buscar dados dos usuários que confirmaram
+        if (confirmData && confirmData.length > 0) {
+          const userIds = confirmData.map(c => c.user_id)
+          const { data: usersData, error: usersError } = await supabase
+            .from('users')
+            .select('*')
+            .in('id', userIds)
+
+          if (usersError) throw usersError
+
+          // Mapear confirmações com dados dos usuários
+          const confirmationsWithUsers: GameConfirmation[] = confirmData.map(confirmation => {
+            const userData = usersData?.find(u => u.id === confirmation.user_id)
+            return {
+              id: confirmation.id,
+              game_id: confirmation.game_id,
+              user_id: confirmation.user_id,
+              confirmed_at: confirmation.confirmed_at || '',
+              user: userData ? {
+                id: userData.id,
+                email: userData.email,
+                full_name: userData.full_name,
+                role: userData.role as 'admin' | 'player',
+                created_at: userData.created_at
+              } : undefined
+            }
+          })
+
+          setConfirmations(confirmationsWithUsers)
+        } else {
+          setConfirmations([])
+        }
 
         // Verificar se usuário atual confirmou
         const userConfirmation = confirmData?.find(c => c.user_id === user?.id)
         setUserConfirmed(!!userConfirmation)
 
-        // Buscar convidados com informações de quem convidou
+        // Buscar convidados
         const { data: guestData, error: guestError } = await supabase
           .from('guests')
-          .select(`
-            id,
-            game_id,
-            user_id,
-            name,
-            cpf,
-            created_at,
-            invited_by:users!guests_user_id_fkey(
-              id,
-              full_name,
-              email,
-              created_at
-            )
-          `)
+          .select('*')
           .eq('game_id', gameData[0].id)
 
         if (guestError) throw guestError
-        
-        const typedGuests: Guest[] = (guestData || []).map(guest => ({
-          id: guest.id,
-          game_id: guest.game_id,
-          user_id: guest.user_id,
-          name: guest.name,
-          cpf: guest.cpf,
-          created_at: guest.created_at,
-          invited_by: guest.invited_by ? {
-            id: guest.invited_by.id,
-            full_name: guest.invited_by.full_name,
-            email: guest.invited_by.email,
-            role: 'player' as 'admin' | 'player',
-            created_at: guest.invited_by.created_at
-          } : undefined
-        }))
-        
-        setGuests(typedGuests)
+
+        // Buscar dados dos usuários que convidaram
+        if (guestData && guestData.length > 0) {
+          const inviterIds = guestData.map(g => g.user_id)
+          const { data: invitersData, error: invitersError } = await supabase
+            .from('users')
+            .select('*')
+            .in('id', inviterIds)
+
+          if (invitersError) throw invitersError
+
+          // Mapear convidados com dados de quem convidou
+          const guestsWithInviters: Guest[] = guestData.map(guest => {
+            const inviterData = invitersData?.find(u => u.id === guest.user_id)
+            return {
+              id: guest.id,
+              game_id: guest.game_id,
+              user_id: guest.user_id,
+              name: guest.name,
+              cpf: guest.cpf,
+              created_at: guest.created_at,
+              invited_by: inviterData ? {
+                id: inviterData.id,
+                email: inviterData.email,
+                full_name: inviterData.full_name,
+                role: inviterData.role as 'admin' | 'player',
+                created_at: inviterData.created_at
+              } : undefined
+            }
+          })
+
+          setGuests(guestsWithInviters)
+        } else {
+          setGuests([])
+        }
 
         // Verificar se usuário tem convidado
         const userGuestData = guestData?.find(g => g.user_id === user?.id)
@@ -230,15 +239,14 @@ export function SportHome() {
           user_id: userGuestData.user_id,
           name: userGuestData.name,
           cpf: userGuestData.cpf,
-          created_at: userGuestData.created_at,
-          invited_by: userGuestData.invited_by ? {
-            id: userGuestData.invited_by.id,
-            full_name: userGuestData.invited_by.full_name,
-            email: userGuestData.invited_by.email,
-            role: 'player' as 'admin' | 'player',
-            created_at: userGuestData.invited_by.created_at
-          } : undefined
+          created_at: userGuestData.created_at
         } : null)
+      } else {
+        setNextGame(null)
+        setConfirmations([])
+        setGuests([])
+        setUserConfirmed(false)
+        setUserGuest(null)
       }
     } catch (error) {
       console.error('Error fetching game data:', error)
@@ -347,11 +355,12 @@ export function SportHome() {
 
   // Função para admin remover usuário confirmado
   const handleAdminRemoveUser = async (confirmationUserId: string) => {
-    if (!nextGame || userProfile?.role !== 'admin') return
+    if (!nextGame || !userProfile || userProfile.role !== 'admin') return
 
     if (!confirm('Tem certeza que deseja remover este usuário do jogo?')) return
 
     try {
+      // Usar a função do banco para remover confirmação e convidado
       const { error } = await supabase.rpc('remove_user_confirmation', {
         game_id_param: nextGame.id,
         user_id_param: confirmationUserId
@@ -376,11 +385,12 @@ export function SportHome() {
 
   // Função para admin remover convidado
   const handleAdminRemoveGuest = async (guestId: string) => {
-    if (userProfile?.role !== 'admin') return
+    if (!userProfile || userProfile.role !== 'admin') return
 
     if (!confirm('Tem certeza que deseja remover este convidado?')) return
 
     try {
+      // Usar a função do banco para remover convidado
       const { error } = await supabase.rpc('remove_guest', {
         guest_id_param: guestId
       })
