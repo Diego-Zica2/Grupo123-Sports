@@ -360,13 +360,23 @@ export function SportHome() {
     if (!confirm('Tem certeza que deseja remover este usuário do jogo?')) return
 
     try {
-      // Usar a função do banco para remover confirmação e convidado
-      const { error } = await supabase.rpc('remove_user_confirmation', {
-        game_id_param: nextGame.id,
-        user_id_param: confirmationUserId
-      })
+      // Remover confirmação
+      const { error: confirmationError } = await supabase
+        .from('game_confirmations')
+        .delete()
+        .eq('game_id', nextGame.id)
+        .eq('user_id', confirmationUserId)
 
-      if (error) throw error
+      if (confirmationError) throw confirmationError
+
+      // Remover convidado associado
+      const { error: guestError } = await supabase
+        .from('guests')
+        .delete()
+        .eq('game_id', nextGame.id)
+        .eq('user_id', confirmationUserId)
+
+      if (guestError) throw guestError
 
       fetchNextGame()
       toast({
@@ -390,10 +400,11 @@ export function SportHome() {
     if (!confirm('Tem certeza que deseja remover este convidado?')) return
 
     try {
-      // Usar a função do banco para remover convidado
-      const { error } = await supabase.rpc('remove_guest', {
-        guest_id_param: guestId
-      })
+      // Delete direto na tabela guests
+      const { error } = await supabase
+        .from('guests')
+        .delete()
+        .eq('id', guestId)
 
       if (error) throw error
 
