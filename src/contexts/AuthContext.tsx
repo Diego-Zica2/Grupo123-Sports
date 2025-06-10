@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Validar domínio do email
     const isValidDomain = await validateEmailDomain(email)
     if (!isValidDomain) {
-      throw new Error('Apenas emails @maxmilhas.com.br e @123milhas.com.br são aceitos')
+      throw new Error('Email com domínio inválido. Por favor, use um email corporativo.')
     }
 
     const redirectUrl = `${window.location.origin}/`

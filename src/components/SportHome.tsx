@@ -440,9 +440,9 @@ export function SportHome() {
                       </Button>
                     ) : (
                       <>
-                        <Badge className="flex-1 justify-center py-2 hover:bg-transparent bg-transparent border-[#00ad46] text-[#00ad46]">
+                        <Badge className="flex-1 justify-center py-2 gap-2 hover:bg-transparent bg-transparent border-[#00ad46] text-[#00ad46]">
                           <CheckCheck  className="h-4 w-4" />
-                         Presença Confirmada
+                           Presença Confirmada
                         </Badge>
                         <Button  
                           onClick={handleCancelPresence}
