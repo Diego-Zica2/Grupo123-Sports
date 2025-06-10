@@ -213,7 +213,7 @@ export function SportSelection() {
                 Admin
               </Button>
             )}
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
             <Button variant="outline" onClick={signOut}>Sair</Button>
           </div>
         </div>

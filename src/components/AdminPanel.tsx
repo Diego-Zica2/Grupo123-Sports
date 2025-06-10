@@ -114,7 +114,7 @@ export function AdminPanel() {
             >
               Voltar aos Esportes
             </Button>
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
             <Button variant="outline" onClick={signOut}>
               Sair
             </Button>

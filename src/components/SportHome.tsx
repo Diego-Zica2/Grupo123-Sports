@@ -510,7 +510,7 @@ export function SportHome() {
                 Admin
               </Button>
             )}
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
             <Button variant="outline" onClick={signOut}>
               Sair
             </Button>
