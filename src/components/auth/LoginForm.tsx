@@ -278,7 +278,7 @@ export function LoginForm() {
                     </p>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    Apenas emails @maxmilhas.com.br e @123milhas.com.br são aceitos
+                    Apenas emails com domínio de colaboradores são permitidos.
                   </p>
                 </div>
 

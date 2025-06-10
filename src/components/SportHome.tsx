@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { GuestForm } from '@/components/GuestForm'
 import { toast } from '@/hooks/use-toast'
-import { Calendar, Clock, MapPin, Users } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, X, Trash2, CheckCheck, ListChecks, SmilePlus } from 'lucide-react'
 
 interface Sport {
   id: string
@@ -335,7 +335,7 @@ export function SportHome() {
             <Button 
               variant="ghost" 
               onClick={() => navigate('/sports')}
-              className="text-sm"
+              className="text-sm bg-secondary hover:bg-primary"
             >
               ← Voltar
             </Button>
@@ -380,15 +380,15 @@ export function SportHome() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Próximo Jogo */}
             <div className="lg:col-span-2">
-              <Card className="border-2 border-primary">
+              <Card className="border-2 border-secondary">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <span className="text-2xl">{getSportIcon(sport.name)}</span>
                     Próximo Jogo
                   </CardTitle>
-                  <CardDescription>
+                  {/* <CardDescription>
                     {formatDate(nextGame.date)}
-                  </CardDescription>
+                  </CardDescription> */}
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -425,13 +425,14 @@ export function SportHome() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 ">
                     {!userConfirmed ? (
                       <Button 
                         onClick={handleConfirmPresence}
                         className="flex-1"
                         disabled={confirmations.length >= nextGame.max_players}
                       >
+                        <CheckCheck  className="h-4 w-4" />
                         {confirmations.length >= nextGame.max_players 
                           ? 'Jogo Lotado' 
                           : 'Confirmar Presença'
@@ -439,14 +440,14 @@ export function SportHome() {
                       </Button>
                     ) : (
                       <>
-                        <Badge variant="secondary" className="flex-1 justify-center py-2">
-                          ✓ Presença Confirmada
+                        <Badge className="flex-1 justify-center py-2 hover:bg-transparent bg-transparent border-[#00ad46] text-[#00ad46]">
+                          <CheckCheck  className="h-4 w-4" />
+                         Presença Confirmada
                         </Badge>
-                        <Button 
-                          variant="outline" 
+                        <Button  
                           onClick={handleCancelPresence}
-                          className="flex-1"
-                        >
+                          className="flex-1 bg-primary text-white hover:text-black"
+                        ><X className="h-4 w-4" />
                           Cancelar Presença
                         </Button>
                       </>
@@ -470,10 +471,11 @@ export function SportHome() {
                         <p className="text-xs text-muted-foreground">CPF: {userGuest.cpf}</p>
                       </div>
                       <Button 
-                        variant="outline" 
+                        className="bg-primary text-white hover:text-black"
                         size="sm"
                         onClick={handleCancelGuest}
                       >
+                        <Trash2 className="h-4 w-4" />
                         Remover
                       </Button>
                     </div>
@@ -486,7 +488,7 @@ export function SportHome() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Jogadores Confirmados</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-lg"><ListChecks  className="h-6 w-6" /> Jogadores Confirmados</CardTitle>
                   <CardDescription>
                     {confirmations.length} de {nextGame.max_players} vagas preenchidas
                   </CardDescription>
@@ -521,7 +523,7 @@ export function SportHome() {
               {guests.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Convidados</CardTitle>
+                    <CardTitle className="flex items-center gap-2 text-lg"><SmilePlus className="h-6 w-6" /> Convidados</CardTitle>
                     <CardDescription>
                       {guests.length} convidado(s)
                     </CardDescription>

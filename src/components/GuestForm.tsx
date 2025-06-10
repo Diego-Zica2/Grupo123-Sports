@@ -11,12 +11,39 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
 
+const isValidCPF = (cpf: string): boolean => {
+  const cleaned = cpf.replace(/\D/g, '')
+  
+  // Verifica tamanho e sequência de dígitos iguais
+  if (cleaned.length !== 11 || /^(\d)\1{10}$/.test(cleaned)) return false
+
+  // Cálculo do primeiro dígito verificador
+  let sum = 0
+  for (let i = 0; i < 9; i++) {
+    sum += parseInt(cleaned.charAt(i)) * (10 - i)
+  }
+  let remainder = (sum * 10) % 11
+  if (remainder === 10 || remainder === 11) remainder = 0
+  if (remainder !== parseInt(cleaned.charAt(9))) return false
+
+  // Cálculo do segundo dígito verificador
+  sum = 0
+  for (let i = 0; i < 10; i++) {
+    sum += parseInt(cleaned.charAt(i)) * (11 - i)
+  }
+  remainder = (sum * 10) % 11
+  if (remainder === 10 || remainder === 11) remainder = 0
+  
+  return remainder === parseInt(cleaned.charAt(10))
+}
+
 const guestSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   cpf: z.string()
     .min(11, 'CPF deve ter 11 dígitos')
     .max(14, 'CPF inválido')
-    .regex(/^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/, 'CPF inválido'),
+    .regex(/^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/, 'CPF inválido')
+    .refine(cpf => isValidCPF(cpf), { message: 'CPF inválido' }), // Nova validação
 })
 
 type GuestFormData = z.infer<typeof guestSchema>

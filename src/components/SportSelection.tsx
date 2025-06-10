@@ -144,20 +144,20 @@ export function SportSelection() {
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold mb-2">Escolha seu Esporte</h2>
           <p className="text-muted-foreground">
-            Selecione o esporte que deseja participar e confirme sua presença
+            Selecione o esporte que deseja participar nesta semana e confirme sua presença
           </p>
         </div>
 
         {sports.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🏃</div>
-            <h3 className="text-xl font-semibold mb-2">Nenhum esporte disponível</h3>
+            <h3 className="text-xl font-semibold mb-2">Nenhum Jogo Agendado!</h3>
             <p className="text-muted-foreground">
-              Os esportes serão disponibilizados em breve!
+              Os Jogos serão Agendados em breve!
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {sports.map((sport) => (
               <Card 
                 key={sport.id} 
