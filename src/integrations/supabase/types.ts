@@ -74,6 +74,7 @@ export type Database = {
           max_players: number | null
           sport_id: string
           time: string
+          visible: boolean | null
         }
         Insert: {
           created_at?: string | null
@@ -85,6 +86,7 @@ export type Database = {
           max_players?: number | null
           sport_id: string
           time: string
+          visible?: boolean | null
         }
         Update: {
           created_at?: string | null
@@ -96,6 +98,7 @@ export type Database = {
           max_players?: number | null
           sport_id?: string
           time?: string
+          visible?: boolean | null
         }
         Relationships: [
           {
@@ -215,7 +218,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      remove_guest: {
+        Args: { guest_id_param: string }
+        Returns: boolean
+      }
+      remove_user_confirmation: {
+        Args: { game_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

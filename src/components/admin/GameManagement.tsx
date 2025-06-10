@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Sport {
@@ -28,12 +29,13 @@ interface Game {
   max_players: number
   created_by: string
   created_at: string
+  visible: boolean
   sport?: Sport
 }
 
 export function GameManagement() {
   const [sports, setSports] = useState<Sport[]>([])
-  const [games, setGames] = useState<Game[]>([])
+  const [activeGames, setActiveGames] = useState<Game[]>([])
   const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
     sport_id: '',
@@ -59,17 +61,28 @@ export function GameManagement() {
       if (sportsError) throw sportsError
       setSports(sportsData || [])
 
-      // Buscar jogos
+      // Buscar apenas jogos ativos (visible = true) de cada esporte
       const { data: gamesData, error: gamesError } = await supabase
         .from('games')
         .select(`
           *,
           sport:sports(*)
         `)
+        .eq('visible', true)
+        .gte('date', new Date().toISOString().split('T')[0])
         .order('date', { ascending: false })
 
       if (gamesError) throw gamesError
-      setGames(gamesData || [])
+      
+      // Filtrar para mostrar apenas o último jogo de cada esporte
+      const gamesBySport = new Map()
+      gamesData?.forEach(game => {
+        if (!gamesBySport.has(game.sport_id)) {
+          gamesBySport.set(game.sport_id, game)
+        }
+      })
+      
+      setActiveGames(Array.from(gamesBySport.values()))
 
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -88,11 +101,27 @@ export function GameManagement() {
     }
 
     try {
+      // Converter data e hora para horário de Brasília
+      const brazilDate = new Date(`${formData.date}T${formData.time}:00-03:00`)
+      const dateString = brazilDate.toISOString().split('T')[0]
+      const timeString = brazilDate.toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'America/Sao_Paulo'
+      })
+
       const { error } = await supabase
         .from('games')
         .insert([{
-          ...formData,
-          created_by: (await supabase.auth.getUser()).data.user?.id
+          sport_id: formData.sport_id,
+          date: dateString,
+          time: timeString,
+          location: formData.location,
+          google_maps_link: formData.google_maps_link,
+          max_players: formData.max_players,
+          created_by: (await supabase.auth.getUser()).data.user?.id,
+          visible: true
         }])
 
       if (error) throw error
@@ -114,6 +143,49 @@ export function GameManagement() {
     }
   }
 
+  const handleDeleteGame = async (gameId: string) => {
+    if (!confirm('Tem certeza que deseja deletar este jogo? Esta ação não pode ser desfeita.')) {
+      return
+    }
+
+    try {
+      // Primeiro deletar confirmações e convidados
+      await supabase.from('game_confirmations').delete().eq('game_id', gameId)
+      await supabase.from('guests').delete().eq('game_id', gameId)
+      
+      // Depois deletar o jogo
+      const { error } = await supabase
+        .from('games')
+        .delete()
+        .eq('id', gameId)
+
+      if (error) throw error
+
+      toast.success('Jogo deletado com sucesso!')
+      fetchData()
+
+    } catch (error) {
+      console.error('Error deleting game:', error)
+      toast.error('Erro ao deletar jogo')
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString + 'T00:00:00-03:00')
+    return date.toLocaleDateString('pt-BR', {
+      timeZone: 'America/Sao_Paulo'
+    })
+  }
+
+  const formatTime = (timeString: string) => {
+    const time = new Date(`2000-01-01T${timeString}:00-03:00`)
+    return time.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'America/Sao_Paulo'
+    })
+  }
+
   if (loading) {
     return (
       <div className="text-center py-8">
@@ -129,7 +201,7 @@ export function GameManagement() {
         <CardHeader>
           <CardTitle>Criar Novo Jogo</CardTitle>
           <CardDescription>
-            Adicione um novo jogo para qualquer esporte cadastrado
+            Adicione um novo jogo para qualquer esporte cadastrado. O jogo anterior será automaticamente desabilitado.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -155,7 +227,7 @@ export function GameManagement() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="date">Data *</Label>
+                <Label htmlFor="date">Data * (Horário de Brasília)</Label>
                 <Input
                   id="date"
                   type="date"
@@ -166,7 +238,7 @@ export function GameManagement() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="time">Horário *</Label>
+                <Label htmlFor="time">Horário * (Horário de Brasília)</Label>
                 <Input
                   id="time"
                   type="time"
@@ -218,40 +290,50 @@ export function GameManagement() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Jogos Cadastrados</CardTitle>
+          <CardTitle>Jogos Ativos</CardTitle>
           <CardDescription>
-            Lista de todos os jogos criados
+            Lista dos jogos atualmente ativos para confirmação (um por esporte)
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {games.length === 0 ? (
+          {activeGames.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              Nenhum jogo cadastrado ainda
+              Nenhum jogo ativo no momento
             </p>
           ) : (
             <div className="space-y-4">
-              {games.map((game) => (
+              {activeGames.map((game) => (
                 <div key={game.id} className="border rounded-lg p-4">
                   <div className="flex justify-between items-start">
-                    <div>
+                    <div className="flex-1">
                       <h3 className="font-semibold">
                         {game.sport?.icon} {game.sport?.name}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(game.date).toLocaleDateString('pt-BR')} às {game.time}
+                        {formatDate(game.date)} às {formatTime(game.time)}
                       </p>
                       <p className="text-sm">{game.location}</p>
                       <p className="text-sm text-muted-foreground">
                         Máximo: {game.max_players} jogadores
                       </p>
                     </div>
-                    {game.google_maps_link && (
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={game.google_maps_link} target="_blank" rel="noopener noreferrer">
-                          Ver no Mapa
-                        </a>
+                    <div className="flex gap-2">
+                      {game.google_maps_link && (
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={game.google_maps_link} target="_blank" rel="noopener noreferrer">
+                            Ver no Mapa
+                          </a>
+                        </Button>
+                      )}
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => handleDeleteGame(game.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Deletar
                       </Button>
-                    )}
+                    </div>
                   </div>
                 </div>
               ))}

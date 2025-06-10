@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -30,6 +31,7 @@ interface Game {
   max_players: number
   created_by: string
   created_at: string
+  visible: boolean
   sport?: Sport
 }
 
@@ -56,6 +58,7 @@ interface Guest {
   name: string
   cpf: string
   created_at: string
+  invited_by?: UserProfile
 }
 
 export function SportHome() {
@@ -94,7 +97,6 @@ export function SportHome() {
 
       if (error) throw error
       
-      // Type assertion to ensure role is the correct type
       const profileData: UserProfile = {
         ...data,
         role: data.role as 'admin' | 'player'
@@ -123,11 +125,12 @@ export function SportHome() {
 
   const fetchNextGame = async () => {
     try {
-      // Buscar próximo jogo
+      // Buscar próximo jogo visível
       const { data: gameData, error: gameError } = await supabase
         .from('games')
         .select('*')
         .eq('sport_id', sportId)
+        .eq('visible', true)
         .gte('date', new Date().toISOString().split('T')[0])
         .order('date', { ascending: true })
         .limit(1)
@@ -137,18 +140,22 @@ export function SportHome() {
       if (gameData && gameData.length > 0) {
         setNextGame(gameData[0])
         
-        // Buscar confirmações
+        // Buscar confirmações com dados completos dos usuários
         const { data: confirmData, error: confirmError } = await supabase
           .from('game_confirmations')
           .select(`
             *,
-            user:users(*)
+            user:users(
+              id,
+              full_name,
+              email,
+              role
+            )
           `)
           .eq('game_id', gameData[0].id)
 
         if (confirmError) throw confirmError
         
-        // Type assertion for confirmations data
         const typedConfirmations: GameConfirmation[] = (confirmData || []).map(confirmation => ({
           ...confirmation,
           user: confirmation.user ? {
@@ -163,18 +170,34 @@ export function SportHome() {
         const userConfirmation = confirmData?.find(c => c.user_id === user?.id)
         setUserConfirmed(!!userConfirmation)
 
-        // Buscar convidados
+        // Buscar convidados com informações de quem convidou
         const { data: guestData, error: guestError } = await supabase
           .from('guests')
-          .select('*')
+          .select(`
+            *,
+            invited_by:users!guests_user_id_fkey(
+              id,
+              full_name,
+              email
+            )
+          `)
           .eq('game_id', gameData[0].id)
 
         if (guestError) throw guestError
-        setGuests(guestData || [])
+        
+        const typedGuests: Guest[] = (guestData || []).map(guest => ({
+          ...guest,
+          invited_by: guest.invited_by as UserProfile
+        }))
+        
+        setGuests(typedGuests)
 
         // Verificar se usuário tem convidado
         const userGuestData = guestData?.find(g => g.user_id === user?.id)
-        setUserGuest(userGuestData || null)
+        setUserGuest(userGuestData ? {
+          ...userGuestData,
+          invited_by: userGuestData.invited_by as UserProfile
+        } : null)
       }
     } catch (error) {
       console.error('Error fetching game data:', error)
@@ -199,7 +222,7 @@ export function SportHome() {
       if (error) throw error
 
       setUserConfirmed(true)
-      fetchNextGame() // Refresh data
+      fetchNextGame()
       toast({
         title: 'Presença confirmada!',
         description: 'Sua presença foi confirmada com sucesso.',
@@ -228,7 +251,6 @@ export function SportHome() {
 
       if (error) throw error
 
-      // Se tinha convidado, remover também
       if (userGuest) {
         await supabase
           .from('guests')
@@ -238,7 +260,7 @@ export function SportHome() {
 
       setUserConfirmed(false)
       setUserGuest(null)
-      fetchNextGame() // Refresh data
+      fetchNextGame()
       toast({
         title: 'Presença cancelada',
         description: 'Sua presença foi cancelada.',
@@ -267,7 +289,7 @@ export function SportHome() {
       if (error) throw error
 
       setUserGuest(null)
-      fetchNextGame() // Refresh data
+      fetchNextGame()
       toast({
         title: 'Convidado removido',
         description: 'Seu convidado foi removido.',
@@ -282,13 +304,80 @@ export function SportHome() {
     }
   }
 
+  // Função para admin remover usuário confirmado
+  const handleAdminRemoveUser = async (confirmationUserId: string) => {
+    if (!nextGame || !userProfile?.role === 'admin') return
+
+    if (!confirm('Tem certeza que deseja remover este usuário do jogo?')) return
+
+    try {
+      const { error } = await supabase.rpc('remove_user_confirmation', {
+        game_id_param: nextGame.id,
+        user_id_param: confirmationUserId
+      })
+
+      if (error) throw error
+
+      fetchNextGame()
+      toast({
+        title: 'Usuário removido',
+        description: 'O usuário foi removido do jogo.',
+      })
+    } catch (error) {
+      console.error('Error removing user:', error)
+      toast({
+        title: 'Erro',
+        description: 'Erro ao remover usuário. Tente novamente.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Função para admin remover convidado
+  const handleAdminRemoveGuest = async (guestId: string) => {
+    if (!userProfile?.role === 'admin') return
+
+    if (!confirm('Tem certeza que deseja remover este convidado?')) return
+
+    try {
+      const { error } = await supabase.rpc('remove_guest', {
+        guest_id_param: guestId
+      })
+
+      if (error) throw error
+
+      fetchNextGame()
+      toast({
+        title: 'Convidado removido',
+        description: 'O convidado foi removido do jogo.',
+      })
+    } catch (error) {
+      console.error('Error removing guest:', error)
+      toast({
+        title: 'Erro',
+        description: 'Erro ao remover convidado. Tente novamente.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
+    const date = new Date(dateString + 'T00:00:00-03:00') // Força horário de Brasília
     return date.toLocaleDateString('pt-BR', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+      timeZone: 'America/Sao_Paulo'
+    })
+  }
+
+  const formatTime = (timeString: string) => {
+    const time = new Date(`2000-01-01T${timeString}:00-03:00`)
+    return time.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'America/Sao_Paulo'
     })
   }
 
@@ -386,9 +475,6 @@ export function SportHome() {
                     <span className="text-2xl">{getSportIcon(sport.name)}</span>
                     Próximo Jogo
                   </CardTitle>
-                  {/* <CardDescription>
-                    {formatDate(nextGame.date)}
-                  </CardDescription> */}
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -398,7 +484,7 @@ export function SportHome() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{nextGame.time}</span>
+                      <span className="text-sm">{formatTime(nextGame.time)}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-muted-foreground" />
@@ -506,13 +592,25 @@ export function SportHome() {
                           className="flex items-center justify-between p-2 bg-muted rounded"
                         >
                           <span className="text-sm font-medium">
-                            {confirmation.user?.full_name || 'Usuário'}
+                            {confirmation.user?.full_name || confirmation.user?.email || 'Usuário'}
                           </span>
-                          {confirmation.user_id === user?.id && (
-                            <Badge variant="secondary" className="text-xs">
-                              Você
-                            </Badge>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {confirmation.user_id === user?.id && (
+                              <Badge variant="secondary" className="text-xs">
+                                Você
+                              </Badge>
+                            )}
+                            {userProfile?.role === 'admin' && confirmation.user_id !== user?.id && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleAdminRemoveUser(confirmation.user_id)}
+                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -535,14 +633,31 @@ export function SportHome() {
                           key={guest.id}
                           className="flex items-center justify-between p-2 bg-muted rounded"
                         >
-                          <span className="text-sm font-medium">
-                            {guest.name}
-                          </span>
-                          {guest.user_id === user?.id && (
-                            <Badge variant="secondary" className="text-xs">
-                              Seu convidado
-                            </Badge>
-                          )}
+                          <div>
+                            <span className="text-sm font-medium block">
+                              {guest.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              Convidado por: {guest.invited_by?.full_name || guest.invited_by?.email || 'Usuário'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {guest.user_id === user?.id && (
+                              <Badge variant="secondary" className="text-xs">
+                                Seu convidado
+                              </Badge>
+                            )}
+                            {userProfile?.role === 'admin' && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleAdminRemoveGuest(guest.id)}
+                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>

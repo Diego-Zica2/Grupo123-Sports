@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { LoginForm } from '@/components/auth/LoginForm';
+import { UpdatePassword } from '@/components/auth/UpdatePassword';
 import { SportSelection } from '@/components/SportSelection';
 import { SportHome } from '@/components/SportHome';
 import { AdminPanel } from '@/components/AdminPanel';
@@ -70,6 +71,10 @@ function AppContent() {
               <AdminPanel />
             </ProtectedRoute>
           } 
+        />
+        <Route 
+          path="/reset-password" 
+          element={<UpdatePassword />} 
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
