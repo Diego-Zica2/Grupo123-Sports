@@ -92,14 +92,14 @@ export function LoginForm() {
   if (activeTab === 'reset') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
+        <Card className="w-full max-w-md">          
+          <CardHeader className="text-center">  
             <div className="mx-auto mb-4 h-full w-full rounded-lg flex items-center justify-center">
               <img
-                src="public/lovable-uploads/dark-logogrupo123.png"
+                src="/lovable-uploads/dark-logogrupo123.png"
                 alt="Descrição da imagem"
               />
-            </div>
+            </div>          
             <CardTitle>Recuperar Senha</CardTitle>
             <CardDescription>
               Digite seu email para receber o link de recuperação

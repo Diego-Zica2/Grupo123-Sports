@@ -166,12 +166,13 @@ export function SportSelection() {
 
   const getSportSchedule = (sport: Sport) => {
     const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
-    const brazilTime = new Date(`2000-01-01T${sport.time}:00-03:00`).toLocaleTimeString('pt-BR', {
+    const brazilTime = new Date(`2000-01-01T${sport.time}:00`).toLocaleTimeString('pt-BR', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'America/Sao_Paulo'
     })
     return `${days[sport.day_of_week]} às ${brazilTime}`
-  }
+}
 
   const getUserConfirmationForSport = (sportId: string) => 
     userConfirmations.find(conf => conf.sport_id === sportId)

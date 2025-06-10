@@ -424,23 +424,23 @@ export function SportHome() {
   }
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString + 'T00:00:00-03:00') // Força horário de Brasília
+    const date = new Date(dateString + 'T00:00:00'); // UTC puro
     return date.toLocaleDateString('pt-BR', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      timeZone: 'America/Sao_Paulo'
-    })
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'America/Sao_Paulo'
+    });
   }
 
   const formatTime = (timeString: string) => {
-    const time = new Date(`2000-01-01T${timeString}:00-03:00`)
+    const time = new Date(`2000-01-01T${timeString}:00`); // UTC puro
     return time.toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'America/Sao_Paulo'
-    })
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'America/Sao_Paulo'
+    });
   }
 
   const getSportIcon = (sportName: string) => {

@@ -102,14 +102,8 @@ export function GameManagement() {
 
     try {
       // Converter data e hora para horário de Brasília
-      const brazilDate = new Date(`${formData.date}T${formData.time}:00-03:00`)
-      const dateString = brazilDate.toISOString().split('T')[0]
-      const timeString = brazilDate.toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-        timeZone: 'America/Sao_Paulo'
-      })
+      const dateString = formData.date
+      const timeString = formData.time
 
       const { error } = await supabase
         .from('games')
@@ -170,21 +164,24 @@ export function GameManagement() {
     }
   }
 
+  // formatDate corrigida
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString + 'T00:00:00-03:00')
-    return date.toLocaleDateString('pt-BR', {
-      timeZone: 'America/Sao_Paulo'
-    })
-  }
+      const date = new Date(dateString + 'T00:00:00'); // Sem 'Z' - assume local
+      return date.toLocaleDateString('pt-BR', {
+          timeZone: 'America/Sao_Paulo'
+      });
+  };
 
+  // formatTime corrigida
   const formatTime = (timeString: string) => {
-    const time = new Date(`2000-01-01T${timeString}:00-03:00`)
-    return time.toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'America/Sao_Paulo'
-    })
-  }
+      const time = new Date(`2000-01-01T${timeString}:00`); // Sem 'Z'
+      return time.toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'America/Sao_Paulo'
+      });
+  };
+
 
   if (loading) {
     return (
