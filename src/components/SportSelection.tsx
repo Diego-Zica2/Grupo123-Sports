@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { CheckCircle, Users } from 'lucide-react'
+import { CheckCircle, Users, CheckCheck } from 'lucide-react'
 
 interface Sport {
   id: string
@@ -246,32 +246,32 @@ export function SportSelection() {
                 <Card 
                   key={sport.id} 
                   className={`hover:shadow-lg transition-shadow cursor-pointer border-2 relative ${
-                    userConfirmation ? 'border-green-600 bg-green-50 dark:bg-green-950' : 'hover:border-primary'
+                    userConfirmation ? 'border-[#00ad46] bg-green-50 dark:bg-[#00ad46] dark:hover:bg-[#009a3e]' : 'hover:border-primary hover:bg-[#081021]'
                   }`}
                   onClick={() => handleSportSelect(sport.id)}
                 >
                   {userConfirmation && (
                     <div className="absolute top-2 right-2 z-10">
-                      <Badge className="bg-green-600 text-white flex items-center gap-1 px-3 py-2 text-base shadow-lg border-2 border-green-700">
-                        <CheckCircle className="h-4 w-4" />
+                      <Badge className="dark:bg-[#00ad46] text-white flex items-center gap-1 px-3 py-2 text-base shadow-lg border-2 border-green-400">
+                        <CheckCheck className="h-4 w-4" />
                         Confirmado
                       </Badge>
                     </div>
                   )}
                   
                   <CardHeader className="text-center">
-                    <div className="text-6xl mb-2">{getSportIcon(sport.name)}</div>
-                    <CardTitle className="text-xl">{sport.name}</CardTitle>
-                    <CardDescription>
+                    <div className="text-7xl mb-4">{getSportIcon(sport.name)}</div>
+                    <CardTitle className="text-4xl">{sport.name}</CardTitle>
+                    <CardDescription className="text-white text-md">
                       {getSportSchedule(sport)}
                     </CardDescription>
                   </CardHeader>
                   
                   <CardContent className="text-center">
                     {userConfirmation?.has_guest && (
-                      <div className="mb-3 p-2 bg-muted rounded-lg">
-                        <div className="flex items-center justify-center gap-1 text-sm">
-                          <Users className="h-3 w-3" />
+                      <div className="mb-3 p-3 bg-green-400 rounded-lg">
+                        <div className="flex items-center justify-center gap-1 text-sm text-gray-800">
+                          <Users className="h-4 w-4" />
                           <span>Convidado: {userConfirmation.guest_name}</span>
                         </div>
                       </div>
