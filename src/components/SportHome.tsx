@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -98,8 +97,11 @@ export function SportHome() {
       if (error) throw error
       
       const profileData: UserProfile = {
-        ...data,
-        role: data.role as 'admin' | 'player'
+        id: data.id,
+        email: data.email,
+        full_name: data.full_name,
+        role: data.role as 'admin' | 'player',
+        created_at: data.created_at
       }
       setUserProfile(profileData)
     } catch (error) {
@@ -144,23 +146,34 @@ export function SportHome() {
         const { data: confirmData, error: confirmError } = await supabase
           .from('game_confirmations')
           .select(`
-            *,
-            user:users(
+            id,
+            game_id,
+            user_id,
+            confirmed_at,
+            user:users!inner(
               id,
               full_name,
               email,
-              role
+              role,
+              created_at
             )
           `)
           .eq('game_id', gameData[0].id)
 
         if (confirmError) throw confirmError
         
+        // Mapear corretamente os dados
         const typedConfirmations: GameConfirmation[] = (confirmData || []).map(confirmation => ({
-          ...confirmation,
+          id: confirmation.id,
+          game_id: confirmation.game_id,
+          user_id: confirmation.user_id,
+          confirmed_at: confirmation.confirmed_at || '',
           user: confirmation.user ? {
-            ...confirmation.user,
-            role: confirmation.user.role as 'admin' | 'player'
+            id: confirmation.user.id,
+            email: confirmation.user.email,
+            full_name: confirmation.user.full_name,
+            role: confirmation.user.role as 'admin' | 'player',
+            created_at: confirmation.user.created_at
           } : undefined
         }))
         
@@ -174,11 +187,17 @@ export function SportHome() {
         const { data: guestData, error: guestError } = await supabase
           .from('guests')
           .select(`
-            *,
+            id,
+            game_id,
+            user_id,
+            name,
+            cpf,
+            created_at,
             invited_by:users!guests_user_id_fkey(
               id,
               full_name,
-              email
+              email,
+              created_at
             )
           `)
           .eq('game_id', gameData[0].id)
@@ -186,8 +205,19 @@ export function SportHome() {
         if (guestError) throw guestError
         
         const typedGuests: Guest[] = (guestData || []).map(guest => ({
-          ...guest,
-          invited_by: guest.invited_by as UserProfile
+          id: guest.id,
+          game_id: guest.game_id,
+          user_id: guest.user_id,
+          name: guest.name,
+          cpf: guest.cpf,
+          created_at: guest.created_at,
+          invited_by: guest.invited_by ? {
+            id: guest.invited_by.id,
+            full_name: guest.invited_by.full_name,
+            email: guest.invited_by.email,
+            role: 'player' as 'admin' | 'player',
+            created_at: guest.invited_by.created_at
+          } : undefined
         }))
         
         setGuests(typedGuests)
@@ -195,8 +225,19 @@ export function SportHome() {
         // Verificar se usuário tem convidado
         const userGuestData = guestData?.find(g => g.user_id === user?.id)
         setUserGuest(userGuestData ? {
-          ...userGuestData,
-          invited_by: userGuestData.invited_by as UserProfile
+          id: userGuestData.id,
+          game_id: userGuestData.game_id,
+          user_id: userGuestData.user_id,
+          name: userGuestData.name,
+          cpf: userGuestData.cpf,
+          created_at: userGuestData.created_at,
+          invited_by: userGuestData.invited_by ? {
+            id: userGuestData.invited_by.id,
+            full_name: userGuestData.invited_by.full_name,
+            email: userGuestData.invited_by.email,
+            role: 'player' as 'admin' | 'player',
+            created_at: userGuestData.invited_by.created_at
+          } : undefined
         } : null)
       }
     } catch (error) {
@@ -306,7 +347,7 @@ export function SportHome() {
 
   // Função para admin remover usuário confirmado
   const handleAdminRemoveUser = async (confirmationUserId: string) => {
-    if (!nextGame || !userProfile?.role === 'admin') return
+    if (!nextGame || userProfile?.role !== 'admin') return
 
     if (!confirm('Tem certeza que deseja remover este usuário do jogo?')) return
 
@@ -335,7 +376,7 @@ export function SportHome() {
 
   // Função para admin remover convidado
   const handleAdminRemoveGuest = async (guestId: string) => {
-    if (!userProfile?.role === 'admin') return
+    if (userProfile?.role !== 'admin') return
 
     if (!confirm('Tem certeza que deseja remover este convidado?')) return
 
@@ -592,7 +633,7 @@ export function SportHome() {
                           className="flex items-center justify-between p-2 bg-muted rounded"
                         >
                           <span className="text-sm font-medium">
-                            {confirmation.user?.full_name || confirmation.user?.email || 'Usuário'}
+                            {confirmation.user?.full_name || confirmation.user?.email || 'Usuário Desconhecido'}
                           </span>
                           <div className="flex items-center gap-2">
                             {confirmation.user_id === user?.id && (
@@ -638,7 +679,7 @@ export function SportHome() {
                               {guest.name}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              Convidado por: {guest.invited_by?.full_name || guest.invited_by?.email || 'Usuário'}
+                              Convidado por: {guest.invited_by?.full_name || guest.invited_by?.email || 'Usuário Desconhecido'}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
