@@ -156,11 +156,18 @@ export function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto h-full w-full rounded-lg flex items-center justify-center">
-              <img
-                src="public/lovable-uploads/dark-logogrupo123.png"
-                alt="logo grupo 123"
-              />
+          <div className="mx-auto mb-1 h-full w-full rounded-lg flex items-center justify-center">
+              <a
+                href="https://grupo123-sports.lovable.app/"
+                rel="noopener noreferrer"
+                aria-label="Ir para Grupo123 Sports"
+              >
+                <img
+                  src="/lovable-uploads/dark-logogrupo123.png"
+                  alt="Logo Grupo123 Sports"
+                  className="cursor-pointer h-12 w-auto object-contain"
+                />
+              </a>
             </div>
           <CardTitle>Sports</CardTitle>
           <CardDescription>
