@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -50,6 +49,12 @@ export function SportSelection() {
     }
   }, [user])
 
+  useEffect(() => {
+    const handleFocus = () => user && fetchUserConfirmations()
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [user])
+
   const fetchUserProfile = async () => {
     if (!user) return
 
@@ -60,13 +65,9 @@ export function SportSelection() {
         .eq('id', user.id)
         .single()
 
-      if (error) throw error
-      
-      const profileData: UserProfile = {
-        ...data,
-        role: data.role as 'admin' | 'player'
+      if (!error) {
+        setUserProfile({ ...data, role: data.role as 'admin' | 'player' })
       }
-      setUserProfile(profileData)
     } catch (error) {
       console.error('Error fetching user profile:', error)
     }
@@ -76,77 +77,72 @@ export function SportSelection() {
     if (!user) return
 
     try {
-      // Buscar confirmações do usuário em jogos ativos
-      const { data: confirmations, error: confirmError } = await supabase
-        .from('game_confirmations')
+      const { data: userGames } = await supabase
+        .from('games')
         .select(`
-          *,
-          games!inner(
-            sport_id,
-            date,
-            visible
-          )
+          id,
+          sport_id,
+          date,
+          visible,
+          game_confirmations!inner(user_id)
         `)
-        .eq('user_id', user.id)
+        .eq('game_confirmations.user_id', user.id)
+        .eq('visible', true)
+        .gte('date', new Date().toISOString().split('T')[0])
+        .order('date', { ascending: true })
 
-      if (confirmError) throw confirmError
-
-      // Buscar convidados do usuário
-      const { data: guests, error: guestError } = await supabase
+      const { data: userGuests } = await supabase
         .from('guests')
         .select(`
-          *,
-          games!inner(
-            sport_id,
-            date,
-            visible
-          )
+          name,
+          games!inner(id, sport_id, date, visible)
         `)
         .eq('user_id', user.id)
+        .eq('games.visible', true)
+        .gte('games.date', new Date().toISOString().split('T')[0])
 
-      if (guestError) throw guestError
-
-      // Processar confirmações por esporte
       const confirmationMap = new Map<string, UserConfirmation>()
+      const sportGames = new Map<string, any>()
 
-      confirmations?.forEach(conf => {
-        const game = conf.games as any
-        if (game.visible && new Date(game.date).toDateString() >= new Date().toDateString()) {
-          confirmationMap.set(game.sport_id, {
-            sport_id: game.sport_id,
-            confirmed: true,
-            has_guest: false
-          })
+      userGames?.forEach(game => {
+        const existing = sportGames.get(game.sport_id)
+        if (!existing || new Date(game.date) < new Date(existing.date)) {
+          sportGames.set(game.sport_id, game)
         }
       })
 
-      guests?.forEach(guest => {
+      sportGames.forEach((game, sport_id) => {
+        confirmationMap.set(sport_id, {
+          sport_id,
+          confirmed: true,
+          has_guest: false
+        })
+      })
+
+      userGuests?.forEach(guest => {
         const game = guest.games as any
-        if (game.visible && new Date(game.date).toDateString() >= new Date().toDateString()) {
-          const existing = confirmationMap.get(game.sport_id)
-          if (existing) {
-            existing.has_guest = true
-            existing.guest_name = guest.name
-          }
+        const existing = confirmationMap.get(game.sport_id)
+        if (existing) {
+          existing.has_guest = true
+          existing.guest_name = guest.name
         }
       })
 
       setUserConfirmations(Array.from(confirmationMap.values()))
-
     } catch (error) {
-      console.error('Error fetching user confirmations:', error)
+      console.error('Error fetching confirmations:', error)
+      setUserConfirmations([])
     }
   }
 
   const fetchSports = async () => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('sports')
         .select('*')
         .eq('visible', true)
         .order('name')
 
-      if (error) throw error
       setSports(data || [])
     } catch (error) {
       console.error('Error fetching sports:', error)
@@ -157,33 +153,28 @@ export function SportSelection() {
 
   const handleSportSelect = (sportId: string) => {
     navigate(`/sport/${sportId}`)
+    setTimeout(() => user && fetchUserConfirmations(), 1000)
   }
 
   const getSportIcon = (sportName: string) => {
     switch (sportName.toLowerCase()) {
-      case 'vôlei':
-        return '🏐'
-      case 'futebol':
-        return '⚽'
-      default:
-        return '🏃'
+      case 'vôlei': return '🏐'
+      case 'futebol': return '⚽'
+      default: return '🏃'
     }
   }
 
   const getSportSchedule = (sport: Sport) => {
     const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
-    // Converter para horário de Brasília
     const brazilTime = new Date(`2000-01-01T${sport.time}:00-03:00`).toLocaleTimeString('pt-BR', {
       hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'America/Sao_Paulo'
+      minute: '2-digit'
     })
     return `${days[sport.day_of_week]} às ${brazilTime}`
   }
 
-  const getUserConfirmationForSport = (sportId: string) => {
-    return userConfirmations.find(conf => conf.sport_id === sportId)
-  }
+  const getUserConfirmationForSport = (sportId: string) => 
+    userConfirmations.find(conf => conf.sport_id === sportId)
 
   if (loading) {
     return (
@@ -202,19 +193,15 @@ export function SportSelection() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <div className="mx-auto mb-1 h-full w-full rounded-lg flex items-center justify-center">
-              <a
-                href="https://grupo123-sports.lovable.app/"
-                rel="noopener noreferrer"
-                aria-label="Ir para Grupo123 Sports"
-              >
+              <a href="/" aria-label="Home">
                 <img
                   src="/lovable-uploads/dark-logogrupo123.png"
-                  alt="Logo Grupo123 Sports"
+                  alt="Logo"
                   className="cursor-pointer h-full w-auto object-contain dark:block hidden"
                 />
                 <img
                   src="/lovable-uploads/light-logogrupo123.png"
-                  alt="Logo Grupo123 Sports"
+                  alt="Logo"
                   className="cursor-pointer h-full w-auto object-contain dark:hidden block"
                 />
               </a>
@@ -222,18 +209,12 @@ export function SportSelection() {
           </div>
           <div className="flex items-center space-x-2">
             {userProfile?.role === 'admin' && (
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/admin')}
-                className="mr-2"
-              >
+              <Button variant="outline" onClick={() => navigate('/admin')} className="mr-2">
                 Admin
               </Button>
             )}
             <ThemeToggle />
-            <Button variant="outline" onClick={signOut}>
-              Sair
-            </Button>
+            <Button variant="outline" onClick={signOut}>Sair</Button>
           </div>
         </div>
       </header>
@@ -245,7 +226,7 @@ export function SportSelection() {
           </div>
           <h2 className="text-3xl font-bold mb-2">Escolha seu Esporte</h2>
           <p className="text-muted-foreground">
-            Selecione o esporte que deseja participar nesta semana e confirme sua presença
+            Selecione o esporte que deseja participar nesta semana
           </p>
         </div>
 
@@ -264,13 +245,15 @@ export function SportSelection() {
               return (
                 <Card 
                   key={sport.id} 
-                  className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-primary relative"
+                  className={`hover:shadow-lg transition-shadow cursor-pointer border-2 relative ${
+                    userConfirmation ? 'border-green-600 bg-green-50 dark:bg-green-950' : 'hover:border-primary'
+                  }`}
                   onClick={() => handleSportSelect(sport.id)}
                 >
                   {userConfirmation && (
                     <div className="absolute top-2 right-2 z-10">
-                      <Badge className="bg-green-500 text-white flex items-center gap-1">
-                        <CheckCircle className="h-3 w-3" />
+                      <Badge className="bg-green-600 text-white flex items-center gap-1 px-3 py-2 text-base shadow-lg border-2 border-green-700">
+                        <CheckCircle className="h-4 w-4" />
                         Confirmado
                       </Badge>
                     </div>
@@ -285,7 +268,7 @@ export function SportSelection() {
                   </CardHeader>
                   
                   <CardContent className="text-center">
-                    {userConfirmation && userConfirmation.has_guest && (
+                    {userConfirmation?.has_guest && (
                       <div className="mb-3 p-2 bg-muted rounded-lg">
                         <div className="flex items-center justify-center gap-1 text-sm">
                           <Users className="h-3 w-3" />
