@@ -146,7 +146,7 @@ export function UserManagement() {
                         </Select>
                         
                         <Button
-                          variant="destructive"
+                          className="bg-red-500 hover:bg-red-600 text-white"
                           size="sm"
                           onClick={() => banUser(user.id)}
                           disabled={user.role === 'admin'}

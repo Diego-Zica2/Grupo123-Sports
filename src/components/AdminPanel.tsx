@@ -98,12 +98,19 @@ export function AdminPanel() {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-4">
-            <div className="h-10 w-20 bg-gradient-to-r from-maxmilhas-orange to-maxmilhas-blue rounded flex items-center justify-center">
-              <span className="text-white font-bold text-sm">MaxMilhas</span>
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold">Painel Administrativo</h1>
-              <p className="text-sm text-muted-foreground">Bem-vindo, {userProfile.full_name}</p>
+            <div className="mx-auto mb-1 h-full w-full rounded-lg flex items-center justify-center">
+              <a href="/" aria-label="Home">
+                <img
+                  src="/lovable-uploads/dark-logogrupo123.png"
+                  alt="Logo"
+                  className="cursor-pointer h-full w-auto object-contain dark:block hidden"
+                />
+                <img
+                  src="/lovable-uploads/light-logogrupo123.png"
+                  alt="Logo"
+                  className="cursor-pointer h-full w-auto object-contain dark:hidden block"
+                />
+              </a>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -123,6 +130,10 @@ export function AdminPanel() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <div className="flex justify-center space-x-4 mb-4">
+          <h1 className="text-lg font-semibold">Painel Administrativo</h1>
+          <h1 className="text-lg font-semibold">Bem-vindo, {userProfile?.full_name || user?.email}</h1>        
+        </div>
         <Tabs defaultValue="games" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="games">Gerenciar Jogos</TabsTrigger>

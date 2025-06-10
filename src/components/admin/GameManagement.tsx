@@ -326,7 +326,7 @@ export function GameManagement() {
                         </Button>
                       )}
                       <Button 
-                        variant="destructive" 
+                        className="bg-red-500 hover:bg-red-600 text-white"
                         size="sm"
                         onClick={() => handleDeleteGame(game.id)}
                       >
