@@ -66,7 +66,7 @@ CREATE TABLE sports (
 -- Inserir esportes padrão
 INSERT INTO sports (name, icon, visible, day_of_week, time) VALUES 
 ('Vôlei', '🏐', true, 6, '12:00'),  -- Sábado 12:00
-('Futebol', '⚽', false, 2, '20:00'); -- Terça 20:00
+('Futebol', '⚽', false, 4, '19:00'); -- Quinta 19:00
 
 -- Tabela de jogos
 CREATE TABLE games (
