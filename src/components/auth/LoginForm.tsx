@@ -94,8 +94,11 @@ export function LoginForm() {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 h-16 w-32 bg-gradient-to-r from-maxmilhas-orange to-maxmilhas-blue rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">MaxMilhas</span>
+            <div className="mx-auto mb-4 h-full w-full rounded-lg flex items-center justify-center">
+              <img
+                src="public/lovable-uploads/dark-logogrupo123.png"
+                alt="Descrição da imagem"
+              />
             </div>
             <CardTitle>Recuperar Senha</CardTitle>
             <CardDescription>
@@ -153,12 +156,15 @@ export function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 h-16 w-32 bg-gradient-to-r from-maxmilhas-orange to-maxmilhas-blue rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xl">MaxMilhas</span>
-          </div>
-          <CardTitle>Bem-vindo</CardTitle>
+          <div className="mx-auto h-full w-full rounded-lg flex items-center justify-center">
+              <img
+                src="public/lovable-uploads/dark-logogrupo123.png"
+                alt="logo grupo 123"
+              />
+            </div>
+          <CardTitle>Sports</CardTitle>
           <CardDescription>
-            Sistema de Agendamento de Jogos
+            Sistema de Agendamento e Confirmação de  de Jogos
           </CardDescription>
         </CardHeader>
         <CardContent>

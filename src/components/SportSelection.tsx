@@ -114,13 +114,20 @@ export function SportSelection() {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-4">
-            <div className="h-10 w-20 bg-gradient-to-r from-maxmilhas-orange to-maxmilhas-blue rounded flex items-center justify-center">
-              <span className="text-white font-bold text-sm">MaxMilhas</span>
+            <div className="mx-auto mb-1 h-full w-full rounded-lg flex items-center justify-center">
+              <a
+                href="https://grupo123-sports.lovable.app/"
+                rel="noopener noreferrer"
+                aria-label="Ir para Grupo123 Sports"
+              >
+                <img
+                  src="/lovable-uploads/dark-logogrupo123.png"
+                  alt="Logo Grupo123 Sports"
+                  className="cursor-pointer h-12 w-auto object-contain"
+                />
+              </a>
             </div>
-            <div>
-              <h1 className="text-lg font-semibold">Bem-vindo, {userProfile?.full_name || user?.email}</h1>
-              <p className="text-sm text-muted-foreground">Escolha um esporte para participar</p>
-            </div>
+          
           </div>
           <div className="flex items-center space-x-2">
             {userProfile?.role === 'admin' && (
@@ -141,7 +148,11 @@ export function SportSelection() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        
         <div className="text-center mb-8">
+          <div className="flex justify-center space-x-4 mb-4">
+              <h1 className="text-lg font-semibold">Bem-vindo, {userProfile?.full_name || user?.email}</h1>        
+            </div>
           <h2 className="text-3xl font-bold mb-2">Escolha seu Esporte</h2>
           <p className="text-muted-foreground">
             Selecione o esporte que deseja participar nesta semana e confirme sua presença
