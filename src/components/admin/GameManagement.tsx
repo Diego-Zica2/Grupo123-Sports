@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -6,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Trash2 } from 'lucide-react'
+import { Trash2, CalendarPlus2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Sport {
@@ -52,7 +51,6 @@ export function GameManagement() {
 
   const fetchData = async () => {
     try {
-      // Buscar esportes
       const { data: sportsData, error: sportsError } = await supabase
         .from('sports')
         .select('*')
@@ -61,7 +59,6 @@ export function GameManagement() {
       if (sportsError) throw sportsError
       setSports(sportsData || [])
 
-      // Buscar apenas jogos ativos (visible = true) de cada esporte
       const { data: gamesData, error: gamesError } = await supabase
         .from('games')
         .select(`
@@ -73,15 +70,14 @@ export function GameManagement() {
         .order('date', { ascending: false })
 
       if (gamesError) throw gamesError
-      
-      // Filtrar para mostrar apenas o último jogo de cada esporte
+
       const gamesBySport = new Map()
       gamesData?.forEach(game => {
         if (!gamesBySport.has(game.sport_id)) {
           gamesBySport.set(game.sport_id, game)
         }
       })
-      
+
       setActiveGames(Array.from(gamesBySport.values()))
 
     } catch (error) {
@@ -94,14 +90,13 @@ export function GameManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.sport_id || !formData.date || !formData.time || !formData.location) {
       toast.error('Preencha todos os campos obrigatórios')
       return
     }
 
     try {
-      // Converter data e hora para horário de Brasília
       const dateString = formData.date
       const timeString = formData.time
 
@@ -143,11 +138,9 @@ export function GameManagement() {
     }
 
     try {
-      // Primeiro deletar confirmações e convidados
       await supabase.from('game_confirmations').delete().eq('game_id', gameId)
       await supabase.from('guests').delete().eq('game_id', gameId)
-      
-      // Depois deletar o jogo
+
       const { error } = await supabase
         .from('games')
         .delete()
@@ -164,24 +157,36 @@ export function GameManagement() {
     }
   }
 
-  // formatDate corrigida
+  function getNextWeekdayDate(targetDay: number) {
+    const today = new Date();
+    const day = today.getDay();
+    let daysAhead = targetDay - day;
+    if (daysAhead <= 0) daysAhead += 7;
+    const nextDate = new Date(today);
+    nextDate.setDate(today.getDate() + daysAhead);
+    return nextDate.toISOString().split('T')[0];
+  }
+
+  function getSportIdByName(name: string) {
+    const sport = sports.find(s => s.name.toLowerCase() === name.toLowerCase());
+    return sport ? sport.id : '';
+  }
+
   const formatDate = (dateString: string) => {
-      const date = new Date(dateString + 'T00:00:00'); // Sem 'Z' - assume local
-      return date.toLocaleDateString('pt-BR', {
-          timeZone: 'America/Sao_Paulo'
-      });
+    const date = new Date(dateString + 'T00:00:00');
+    return date.toLocaleDateString('pt-BR', {
+      timeZone: 'America/Sao_Paulo'
+    });
   };
 
-  // formatTime corrigida
   const formatTime = (timeString: string) => {
-      const time = new Date(`2000-01-01T${timeString}:00`); // Sem 'Z'
-      return time.toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZone: 'America/Sao_Paulo'
-      });
+    const time = new Date(`2000-01-01T${timeString}:00`);
+    return time.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'America/Sao_Paulo'
+    });
   };
-
 
   if (loading) {
     return (
@@ -193,17 +198,54 @@ export function GameManagement() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-2 sm:px-0 mx-auto">
       <Card>
-        <CardHeader>
+        <CardHeader className='text-center'>
           <CardTitle>Criar Novo Jogo</CardTitle>
           <CardDescription>
-            Adicione um novo jogo para qualquer esporte cadastrado. O jogo anterior será automaticamente desabilitado.
+            <p>Adicione um novo jogo para qualquer esporte cadastrado.</p> 
+            <p>O jogo anterior será automaticamente desabilitado.</p>
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Botões de preenchimento rápido */}
+          <div className="flex flex-col gap-2 mb-6 sm:flex-row sm:gap-4 justify-center">
+            <Button
+              type="button"
+              onClick={() => {
+                setFormData({
+                  sport_id: getSportIdByName('Vôlei'),
+                  date: getNextWeekdayDate(6),
+                  time: '12:00',
+                  location: 'Arena Túnel - Quadra 01 | Entrada pela Rua Itaguara 55',
+                  google_maps_link: 'https://maps.app.goo.gl/Gzh9c2FREp2dGzCB6',
+                  max_players: 30
+                });
+              }}              
+              className="flex items-center gap-2 w-full sm:w-auto bg-green-600 hover:bg-primary text-black"
+            >
+              🏐 Criar Jogo Padrão Vôlei
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setFormData({
+                  sport_id: getSportIdByName('Futebol'),
+                  date: getNextWeekdayDate(4),
+                  time: '19:00',
+                  location: 'Arena Túnel - Quadra 01 | Entrada pela Rua Itaguara 55',
+                  google_maps_link: 'https://maps.app.goo.gl/Gzh9c2FREp2dGzCB6',
+                  max_players: 16
+                });
+              }}              
+              className="flex items-center gap-2 w-full sm:w-auto bg-green-600 hover:bg-primary text-black"
+            >
+              ⚽ Criar Jogo Padrão Futebol
+            </Button>
+          </div>
+          <p className="border-b w-full mx-auto mb-6"></p>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="sport">Esporte *</Label>
                 <Select
@@ -224,7 +266,7 @@ export function GameManagement() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="date">Data * (Horário de Brasília)</Label>
+                <Label htmlFor="date">Data *</Label>
                 <Input
                   id="date"
                   type="date"
@@ -235,7 +277,10 @@ export function GameManagement() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="time">Horário * (Horário de Brasília)</Label>
+                <Label htmlFor="time">
+                  Horário *
+                  
+                </Label>
                 <Input
                   id="time"
                   type="time"
@@ -278,7 +323,8 @@ export function GameManagement() {
               />
             </div>
 
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full text-black hover:text-white">
+              <CalendarPlus2 className="h-4 w-4" />
               Criar Jogo
             </Button>
           </form>
@@ -301,7 +347,7 @@ export function GameManagement() {
             <div className="space-y-4">
               {activeGames.map((game) => (
                 <div key={game.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
                     <div className="flex-1">
                       <h3 className="font-semibold">
                         {game.sport?.icon} {game.sport?.name}
@@ -314,7 +360,7 @@ export function GameManagement() {
                         Máximo: {game.max_players} jogadores
                       </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 mt-2 sm:mt-0">
                       {game.google_maps_link && (
                         <Button variant="outline" size="sm" asChild>
                           <a href={game.google_maps_link} target="_blank" rel="noopener noreferrer">

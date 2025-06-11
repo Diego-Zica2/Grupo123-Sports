@@ -113,3 +113,9 @@
     border-color: hsl(var(--maxmilhas-orange));
   }
 }
+
+/* globals.css */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(0.9);
+}
