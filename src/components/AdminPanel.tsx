@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { GameManagement } from '@/components/admin/GameManagement'
 import { UserManagement } from '@/components/admin/UserManagement'
+import { DomainManagement } from '@/components/admin/DomainManagement'
 
 interface UserProfile {
   id: string
@@ -135,9 +136,10 @@ export function AdminPanel() {
           <h1 className="text-lg font-semibold">Bem-vindo, {userProfile?.full_name || user?.email}</h1>        
         </div>
         <Tabs defaultValue="games" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="games">Gerenciar Jogos</TabsTrigger>
             <TabsTrigger value="users">Gerenciar Usuários</TabsTrigger>
+            <TabsTrigger value="domains">Gerenciar Domínios</TabsTrigger>
           </TabsList>
           
           <TabsContent value="games" className="mt-6">
@@ -146,6 +148,10 @@ export function AdminPanel() {
           
           <TabsContent value="users" className="mt-6">
             <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="domains" className="mt-6">
+            <DomainManagement />
           </TabsContent>
         </Tabs>
       </main>

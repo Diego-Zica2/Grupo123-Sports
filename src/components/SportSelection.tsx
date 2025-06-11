@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -33,12 +34,20 @@ interface UserConfirmation {
   guest_name?: string
 }
 
+interface SportAvailability {
+  sport_id: string
+  available_spots: number
+  is_full: boolean
+  max_players: number
+}
+
 export function SportSelection() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const [sports, setSports] = useState<Sport[]>([])
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [userConfirmations, setUserConfirmations] = useState<UserConfirmation[]>([])
+  const [sportAvailability, setSportAvailability] = useState<SportAvailability[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -46,11 +55,17 @@ export function SportSelection() {
     if (user) {
       fetchUserProfile()
       fetchUserConfirmations()
+      fetchSportAvailability()
     }
   }, [user])
 
   useEffect(() => {
-    const handleFocus = () => user && fetchUserConfirmations()
+    const handleFocus = () => {
+      if (user) {
+        fetchUserConfirmations()
+        fetchSportAvailability()
+      }
+    }
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
   }, [user])
@@ -135,6 +150,51 @@ export function SportSelection() {
     }
   }
 
+  const fetchSportAvailability = async () => {
+    try {
+      const { data: games } = await supabase
+        .from('games')
+        .select(`
+          id,
+          sport_id,
+          max_players,
+          date,
+          visible,
+          game_confirmations(id),
+          guests(id)
+        `)
+        .eq('visible', true)
+        .gte('date', new Date().toISOString().split('T')[0])
+        .order('date', { ascending: true })
+
+      if (!games) return
+
+      const availabilityMap = new Map<string, SportAvailability>()
+
+      games.forEach(game => {
+        const existing = availabilityMap.get(game.sport_id)
+        if (!existing || new Date(game.date) < new Date(existing.date)) {
+          const confirmedCount = game.game_confirmations?.length || 0
+          const guestsCount = game.guests?.length || 0
+          const totalOccupied = confirmedCount + guestsCount
+          const availableSpots = Math.max(0, game.max_players - totalOccupied)
+
+          availabilityMap.set(game.sport_id, {
+            sport_id: game.sport_id,
+            available_spots: availableSpots,
+            is_full: availableSpots === 0,
+            max_players: game.max_players
+          })
+        }
+      })
+
+      setSportAvailability(Array.from(availabilityMap.values()))
+    } catch (error) {
+      console.error('Error fetching sport availability:', error)
+      setSportAvailability([])
+    }
+  }
+
   const fetchSports = async () => {
     try {
       const { data } = await supabase
@@ -153,7 +213,12 @@ export function SportSelection() {
 
   const handleSportSelect = (sportId: string) => {
     navigate(`/sport/${sportId}`)
-    setTimeout(() => user && fetchUserConfirmations(), 1000)
+    setTimeout(() => {
+      if (user) {
+        fetchUserConfirmations()
+        fetchSportAvailability()
+      }
+    }, 1000)
   }
 
   const getSportIcon = (sportName: string) => {
@@ -172,10 +237,13 @@ export function SportSelection() {
       timeZone: 'America/Sao_Paulo'
     })
     return `${days[sport.day_of_week]} às ${brazilTime}`
-}
+  }
 
   const getUserConfirmationForSport = (sportId: string) => 
     userConfirmations.find(conf => conf.sport_id === sportId)
+
+  const getSportAvailability = (sportId: string) =>
+    sportAvailability.find(avail => avail.sport_id === sportId)
 
   if (loading) {
     return (
@@ -243,22 +311,72 @@ export function SportSelection() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {sports.map((sport) => {
               const userConfirmation = getUserConfirmationForSport(sport.id)
-              return (
-                <Card 
-                  key={sport.id} 
-                  className={`hover:shadow-lg transition-shadow cursor-pointer border-2 relative ${
-                    userConfirmation ? 'border-[#00ad46] bg-green-50 dark:bg-[#00ad46] dark:hover:bg-[#009a3e]' : 'hover:border-primary hover:bg-[#081021]'
-                  }`}
-                  onClick={() => handleSportSelect(sport.id)}
-                >
-                  {userConfirmation && (
+              const availability = getSportAvailability(sport.id)
+              
+              // Se o usuário está confirmado, usa o estilo verde
+              if (userConfirmation) {
+                return (
+                  <Card 
+                    key={sport.id} 
+                    className="hover:shadow-lg transition-shadow cursor-pointer border-2 border-[#00ad46] bg-green-50 dark:bg-[#00ad46] dark:hover:bg-[#009a3e] relative"
+                    onClick={() => handleSportSelect(sport.id)}
+                  >
                     <div className="absolute top-2 right-2 z-10">
                       <Badge className="dark:bg-[#00ad46] text-white flex items-center gap-1 px-3 py-2 text-base shadow-lg border-2 border-green-400">
                         <CheckCheck className="h-4 w-4" />
                         Confirmado
                       </Badge>
                     </div>
-                  )}
+                    
+                    <CardHeader className="text-center">
+                      <div className="text-7xl mb-4">{getSportIcon(sport.name)}</div>
+                      <CardTitle className="text-4xl">{sport.name}</CardTitle>
+                      <CardDescription className="text-white text-md">
+                        {getSportSchedule(sport)}
+                      </CardDescription>
+                    </CardHeader>
+                    
+                    <CardContent className="text-center">
+                      {userConfirmation?.has_guest && (
+                        <div className="mb-3 p-3 bg-green-400 rounded-lg">
+                          <div className="flex items-center justify-center gap-1 text-sm text-gray-800">
+                            <Users className="h-4 w-4" />
+                            <span>Convidado: {userConfirmation.guest_name}</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <Button className="w-full">
+                        Ver Detalhes
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )
+              }
+
+              // Se o usuário não está confirmado, verifica disponibilidade
+              const isFull = availability?.is_full || false
+              const availableSpots = availability?.available_spots || 0
+
+              return (
+                <Card 
+                  key={sport.id} 
+                  className={`hover:shadow-lg transition-shadow cursor-pointer border-2 relative ${
+                    isFull 
+                      ? 'border-red-500 bg-red-50 dark:bg-red-900 dark:hover:bg-red-800' 
+                      : 'hover:border-primary hover:bg-[#081021]'
+                  }`}
+                  onClick={() => handleSportSelect(sport.id)}
+                >
+                  <div className="absolute top-2 right-2 z-10">
+                    <Badge className={`text-white flex items-center gap-1 px-3 py-2 text-base shadow-lg border-2 ${
+                      isFull 
+                        ? 'bg-red-500 border-red-400' 
+                        : 'bg-blue-500 border-blue-400'
+                    }`}>
+                      {isFull ? 'Lotado' : `${availableSpots} Vagas`}
+                    </Badge>
+                  </div>
                   
                   <CardHeader className="text-center">
                     <div className="text-7xl mb-4">{getSportIcon(sport.name)}</div>
@@ -269,17 +387,8 @@ export function SportSelection() {
                   </CardHeader>
                   
                   <CardContent className="text-center">
-                    {userConfirmation?.has_guest && (
-                      <div className="mb-3 p-3 bg-green-400 rounded-lg">
-                        <div className="flex items-center justify-center gap-1 text-sm text-gray-800">
-                          <Users className="h-4 w-4" />
-                          <span>Convidado: {userConfirmation.guest_name}</span>
-                        </div>
-                      </div>
-                    )}
-                    
                     <Button className="w-full">
-                      {userConfirmation ? 'Ver Detalhes' : 'Entrar'}
+                      {isFull ? 'Lista de Espera' : 'Entrar'}
                     </Button>
                   </CardContent>
                 </Card>
