@@ -64,19 +64,22 @@ export function ResetPassword({ onBackToLogin }: ResetPasswordProps) {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
-        <div className="mx-auto mb-4 h-20 w-20 rounded-lg flex items-center justify-center">
-          <img
-            src="/lovable-uploads/dark-logogrupo123.png"
-            alt="Logo Grupo123 Sports"
-            className="h-full w-auto object-contain dark:block hidden"
-          />
-          <img
-            src="/lovable-uploads/light-logogrupo123.png"
-            alt="Logo Grupo123 Sports"
-            className="h-full w-auto object-contain dark:hidden block"
-          />
-        </div>
-        <CardTitle>Resetar Senha</CardTitle>
+      <div className="mx-auto mb-1 h-full w-full rounded-lg flex items-center justify-center">
+                <a
+                  href="https://grupo123-sports.lovable.app/"
+                  rel="noopener noreferrer"
+                  aria-label="Ir para Grupo123 Sports"
+                >
+                  <img
+                    src="/lovable-uploads/dark-logogrupo123.png"
+                    alt="Logo Grupo123 Sports"
+                    className="cursor-pointer h-full w-auto object-contain"
+                  />
+                </a>
+              </div>
+              <CardTitle className="bg-background px-4 py-2 rounded-full inline-block">
+                Recuperar Senha
+              </CardTitle>
         <CardDescription>
           Digite seu email para receber o link de reset de senha
         </CardDescription>

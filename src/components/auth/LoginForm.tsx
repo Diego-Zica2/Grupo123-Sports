@@ -94,16 +94,22 @@ export function LoginForm() {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">          
           <CardHeader className="text-center">  
-            <div className="mx-auto mb-4 h-full w-full rounded-lg flex items-center justify-center">
-              <img
-                src="/lovable-uploads/dark-logogrupo123.png"
-                alt="Descrição da imagem"
-              />
-            </div>          
-            <CardTitle>Recuperar Senha</CardTitle>
-            <CardDescription>
-              Digite seu email para receber o link de recuperação
-            </CardDescription>
+            <div className="mx-auto mb-1 h-full w-full rounded-lg flex items-center justify-center">
+                <a
+                  href="https://grupo123-sports.lovable.app/"
+                  rel="noopener noreferrer"
+                  aria-label="Ir para Grupo123 Sports"
+                >
+                  <img
+                    src="/lovable-uploads/dark-logogrupo123.png"
+                    alt="Logo Grupo123 Sports"
+                    className="cursor-pointer h-full w-auto object-contain"
+                  />
+                </a>
+              </div>
+              <CardTitle className="bg-background px-4 py-2 rounded-full inline-block">
+                Recuperar Senha
+              </CardTitle>            
           </CardHeader>
           <CardContent>
             <form onSubmit={resetForm.handleSubmit(handleReset)} className="space-y-4">
@@ -169,10 +175,9 @@ export function LoginForm() {
                 />
               </a>
             </div>
-          <CardTitle>Sports</CardTitle>
-          <CardDescription>
-            Sistema de Agendamento e Confirmação de  de Jogos
-          </CardDescription>
+            <CardTitle className="bg-background px-4 py-2 rounded-full inline-block">
+              SPORTS
+            </CardTitle>            
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
