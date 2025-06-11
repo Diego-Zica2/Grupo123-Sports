@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -173,7 +172,7 @@ export function SportSelection() {
 
       games.forEach(game => {
         const existing = availabilityMap.get(game.sport_id)
-        if (!existing || new Date(game.date) < new Date(existing.date)) {
+        if (!existing) {
           const confirmedCount = game.game_confirmations?.length || 0
           const guestsCount = game.guests?.length || 0
           const totalOccupied = confirmedCount + guestsCount
