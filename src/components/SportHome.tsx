@@ -83,6 +83,9 @@ export function SportHome() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [showGuestForm, setShowGuestForm] = useState(false)
+  const [showProcessedList, setShowProcessedList] = useState(false);
+  const [processedList, setProcessedList] = useState<string>('');
+
 
   useEffect(() => {
     if (sportId) {
@@ -549,33 +552,98 @@ export function SportHome() {
     }
   }
 
-  // Função para admin processar lista de espera
-  const handleProcessWaitingList = async () => {
-    if (!nextGame || !userProfile || userProfile.role !== 'admin') return
-
-    if (!confirm('Tem certeza que deseja fechar a lista de confirmados e processar a lista de espera?')) return
-
-    try {
-      const { data, error } = await supabase.rpc('process_waiting_list_and_confirm', {
-        game_id_param: nextGame.id
-      })
-
-      if (error) throw error
-
-      fetchNextGame()
-      toast({
-        title: 'Lista processada!',
-        description: 'A lista de espera foi processada e colaboradores foram confirmados.',
-      })
-    } catch (error) {
-      console.error('Error processing waiting list:', error)
-      toast({
-        title: 'Erro',
-        description: 'Erro ao processar lista de espera. Tente novamente.',
-        variant: 'destructive',
-      })
+  const handleShowProcessedList = () => {
+    if (!nextGame) return;
+  
+    // Ordenar confirmações por data de confirmação
+    const sortedConfirmations = [...confirmations].sort((a, b) =>
+      new Date(a.confirmed_at).getTime() - new Date(b.confirmed_at).getTime()
+    );
+    const sortedWaitingList = [...waitingList].sort((a, b) =>
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    const sortedGuests = [...guests].sort((a, b) =>
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+  
+    const maxPlayers = nextGame.max_players;
+    let vagasRestantes = maxPlayers;
+  
+    // 1. Jogadores confirmados
+    const jogadores = sortedConfirmations.slice(0, maxPlayers);
+    vagasRestantes -= jogadores.length;
+  
+    // 2. Lista de espera (se houver vagas)
+    let listaEspera: typeof waitingList = [];
+    if (vagasRestantes > 0) {
+      listaEspera = sortedWaitingList.slice(0, vagasRestantes);
+      vagasRestantes -= listaEspera.length;
     }
-  }
+  
+    // 3. Convidados (se ainda houver vagas)
+    let listaConvidados: typeof guests = [];
+    if (vagasRestantes > 0) {
+      listaConvidados = sortedGuests.slice(0, vagasRestantes);
+    }
+  
+    // Montar string da lista
+    let output = '';
+    let count = 1;
+
+    output += 'Jogadores Confirmados:\n\n'; // Dupla quebra de linha para espaço
+
+    jogadores.forEach(j => {
+      output += `${count++}. ${j.user?.full_name || j.user?.email || 'Usuário'}\n`;
+    });
+
+    if (listaEspera.length > 0) {
+      output += '\nLista de Espera:\n\n'; // Dupla quebra de linha para espaço
+
+      listaEspera.forEach(w => {
+        output += `${count++}. ${w.user?.full_name || w.user?.email || 'Usuário'}\n`;
+      });
+    }
+
+    if (listaConvidados.length > 0) {
+      output += '\nConvidados:\n\n'; // Dupla quebra de linha para espaço
+
+      listaConvidados.forEach(g => {
+        output += `${count++}. ${g.name}\n`;
+      });
+    }
+
+    setProcessedList(output);
+    setShowProcessedList(true);
+  };
+  
+
+  // // Função para admin processar lista de espera
+  // const handleProcessWaitingList = async () => {
+  //   if (!nextGame || !userProfile || userProfile.role !== 'admin') return
+
+  //   if (!confirm('Tem certeza que deseja fechar a lista de confirmados e processar a lista de espera?')) return
+
+  //   try {
+  //     const { data, error } = await supabase.rpc('process_waiting_list_and_confirm', {
+  //       game_id_param: nextGame.id
+  //     })
+
+  //     if (error) throw error
+
+  //     fetchNextGame()
+  //     toast({
+  //       title: 'Lista processada!',
+  //       description: 'A lista de espera foi processada e colaboradores foram confirmados.',
+  //     })
+  //   } catch (error) {
+  //     console.error('Error processing waiting list:', error)
+  //     toast({
+  //       title: 'Erro',
+  //       description: 'Erro ao processar lista de espera. Tente novamente.',
+  //       variant: 'destructive',
+  //     })
+  //   }
+  // }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString + 'T00:00:00'); // UTC puro
@@ -612,7 +680,7 @@ export function SportHome() {
   const canAddGuest = guests.length < 10 && userConfirmed && !userGuest
 
   // Verificar se jogo está lotado
-  const isGameFull = confirmations.length + guests.length >= (nextGame?.max_players || 0)
+  const isGameFull = confirmations.length >= (nextGame?.max_players || 0)
 
   if (loading) {
     return (
@@ -710,7 +778,7 @@ export function SportHome() {
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {confirmations.length + guests.length}/{nextGame.max_players} jogadores
+                        {confirmations.length}/{nextGame.max_players} jogadores
                       </span>
                     </div>
                   </div>
@@ -822,16 +890,39 @@ export function SportHome() {
                   {/* Botão Admin para processar lista de espera */}
                   {userProfile?.role === 'admin' && (
                     <Button 
-                      onClick={handleProcessWaitingList}
+                      onClick={handleShowProcessedList}
                       variant="outline"
-                      className="w-full bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                      className="w-full bg-transparent border-primary text-primary hover:bg-primary hover:text-black"
                     >
-                      Fechar Lista de Confirmados e Processar Espera
+                      Processar Lista de Confirmados
                     </Button>
                   )}
                 </CardContent>
               </Card>
-            </div>
+
+              {showProcessedList && (
+              <Card className="mt-6 border-2 border">
+                <CardHeader>
+                  <CardTitle>Lista Processada para Copiar</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <textarea
+                    className="w-full h-48 p-2 border rounded bg-muted text-white"
+                    value={processedList}
+                    readOnly
+                    onFocus={e => e.target.select()}
+                  />
+                  <Button
+                    className="mt-2"
+                    onClick={() => setShowProcessedList(false)}
+                    variant="secondary"
+                  >
+                    Fechar
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+            </div>            
 
             {/* Jogadores Confirmados e Lista de Espera */}
             <div className="space-y-6">
@@ -842,7 +933,7 @@ export function SportHome() {
                     Jogadores Confirmados
                   </CardTitle>
                   <CardDescription>
-                    {confirmations.length + guests.length} de {nextGame.max_players} vagas preenchidas
+                    {confirmations.length} de {nextGame.max_players} vagas preenchidas
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -950,7 +1041,7 @@ export function SportHome() {
                       {waitingList.map((waiting) => (
                         <div 
                           key={waiting.id}
-                          className="flex items-center justify-between p-2 bg-orange-50 rounded"
+                          className="flex items-center justify-between p-2 bg-muted rounded"
                         >
                           <span className="text-sm font-medium">
                             {waiting.user?.full_name || waiting.user?.email || 'Usuário Desconhecido'}
