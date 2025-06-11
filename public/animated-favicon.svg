@@ -1,0 +1,71 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <!-- Gradientes para dar profundidade -->
+    <radialGradient id="volleyballGradient" cx="0.3" cy="0.3" r="0.7">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="70%" stop-color="#ffeb3b"/>
+      <stop offset="100%" stop-color="#ff9800"/>
+    </radialGradient>
+    
+    <radialGradient id="footballGradient" cx="0.3" cy="0.3" r="0.7">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="70%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Bola de Vôlei -->
+  <g id="volleyball">
+    <!-- Círculo base da bola de vôlei -->
+    <circle cx="16" cy="16" r="14" fill="url(#volleyballGradient)" stroke="#e65100" stroke-width="0.5">
+      <animate attributeName="opacity" values="1;1;0;0;1;1" dur="10s" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="scale" values="1;1;0.8;0.8;1;1" dur="10s" repeatCount="indefinite"/>
+    </circle>
+    
+    <!-- Linhas da bola de vôlei -->
+    <path d="M 2 16 Q 16 2 30 16" stroke="#e65100" stroke-width="1" fill="none">
+      <animate attributeName="opacity" values="1;1;0;0;1;1" dur="10s" repeatCount="indefinite"/>
+    </path>
+    <path d="M 2 16 Q 16 30 30 16" stroke="#e65100" stroke-width="1" fill="none">
+      <animate attributeName="opacity" values="1;1;0;0;1;1" dur="10s" repeatCount="indefinite"/>
+    </path>
+    <path d="M 16 2 Q 2 16 16 30" stroke="#e65100" stroke-width="1" fill="none">
+      <animate attributeName="opacity" values="1;1;0;0;1;1" dur="10s" repeatCount="indefinite"/>
+    </path>
+    <path d="M 16 2 Q 30 16 16 30" stroke="#e65100" stroke-width="1" fill="none">
+      <animate attributeName="opacity" values="1;1;0;0;1;1" dur="10s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  
+  <!-- Bola de Futebol -->
+  <g id="football">
+    <!-- Círculo base da bola de futebol -->
+    <circle cx="16" cy="16" r="14" fill="url(#footballGradient)" stroke="#000000" stroke-width="0.5">
+      <animate attributeName="opacity" values="0;0;1;1;0;0" dur="10s" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="scale" values="0.8;0.8;1;1;0.8;0.8" dur="10s" repeatCount="indefinite"/>
+    </circle>
+    
+    <!-- Pentágono central -->
+    <polygon points="16,8 20,12 18,17 14,17 12,12" fill="#000000">
+      <animate attributeName="opacity" values="0;0;1;1;0;0" dur="10s" repeatCount="indefinite"/>
+    </polygon>
+    
+    <!-- Hexágonos ao redor -->
+    <polygon points="16,8 20,12 24,10 22,6 18,4" fill="none" stroke="#000000" stroke-width="0.8">
+      <animate attributeName="opacity" values="0;0;1;1;0;0" dur="10s" repeatCount="indefinite"/>
+    </polygon>
+    <polygon points="12,12 16,8 18,4 14,2 10,6" fill="none" stroke="#000000" stroke-width="0.8">
+      <animate attributeName="opacity" values="0;0;1;1;0;0" dur="10s" repeatCount="indefinite"/>
+    </polygon>
+    <polygon points="20,12 24,10 28,14 26,18 22,16" fill="none" stroke="#000000" stroke-width="0.8">
+      <animate attributeName="opacity" values="0;0;1;1;0;0" dur="10s" repeatCount="indefinite"/>
+    </polygon>
+    <polygon points="12,12 10,6 6,8 4,12 8,16" fill="none" stroke="#000000" stroke-width="0.8">
+      <animate attributeName="opacity" values="0;0;1;1;0;0" dur="10s" repeatCount="indefinite"/>
+    </polygon>
+    <polygon points="14,17 18,17 22,16 26,18 24,24 20,26 16,24 12,26 8,22 8,16" fill="none" stroke="#000000" stroke-width="0.8">
+      <animate attributeName="opacity" values="0;0;1;1;0;0" dur="10s" repeatCount="indefinite"/>
+    </polygon>
+  </g>
+</svg>
