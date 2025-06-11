@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Trash2, CalendarPlus2 } from 'lucide-react'
+import { Trash2, CalendarPlus2, FilePenLine } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Sport {
@@ -38,6 +38,16 @@ export function GameManagement() {
   const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
     sport_id: '',
+    date: '',
+    time: '',
+    location: '',
+    google_maps_link: '',
+    max_players: 20
+  })
+
+  // Estados para edição
+  const [editingGameId, setEditingGameId] = useState<string | null>(null)
+  const [editFormData, setEditFormData] = useState({
     date: '',
     time: '',
     location: '',
@@ -157,6 +167,46 @@ export function GameManagement() {
     }
   }
 
+  // Funções de edição
+  const startEditing = (game: Game) => {
+    setEditingGameId(game.id)
+    setEditFormData({
+      date: game.date,
+      time: game.time,
+      location: game.location,
+      google_maps_link: game.google_maps_link,
+      max_players: game.max_players
+    })
+  }
+
+  const cancelEditing = () => {
+    setEditingGameId(null)
+  }
+
+  const handleEditGame = async (gameId: string) => {
+    try {
+      const { error } = await supabase
+        .from('games')
+        .update({
+          date: editFormData.date,
+          time: editFormData.time,
+          location: editFormData.location,
+          google_maps_link: editFormData.google_maps_link,
+          max_players: editFormData.max_players
+        })
+        .eq('id', gameId)
+
+      if (error) throw error
+
+      toast.success('Jogo atualizado com sucesso!')
+      setEditingGameId(null)
+      fetchData()
+    } catch (error) {
+      console.error('Erro ao atualizar jogo:', error)
+      toast.error('Erro ao atualizar jogo')
+    }
+  }
+
   function getNextWeekdayDate(targetDay: number) {
     const today = new Date();
     const day = today.getDay();
@@ -264,7 +314,6 @@ export function GameManagement() {
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="date">Data *</Label>
                 <Input
@@ -275,11 +324,9 @@ export function GameManagement() {
                   required
                 />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="time">
                   Horário *
-                  
                 </Label>
                 <Input
                   id="time"
@@ -289,7 +336,6 @@ export function GameManagement() {
                   required
                 />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="max_players">Máximo de Jogadores</Label>
                 <Input
@@ -301,7 +347,6 @@ export function GameManagement() {
                 />
               </div>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="location">Local *</Label>
               <Input
@@ -312,7 +357,6 @@ export function GameManagement() {
                 required
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="google_maps_link">Link do Google Maps</Label>
               <Input
@@ -322,7 +366,6 @@ export function GameManagement() {
                 placeholder="https://maps.google.com/..."
               />
             </div>
-
             <Button type="submit" className="w-full text-black hover:text-white">
               <CalendarPlus2 className="h-4 w-4" />
               Criar Jogo
@@ -352,29 +395,80 @@ export function GameManagement() {
                       <h3 className="font-semibold">
                         {game.sport?.icon} {game.sport?.name}
                       </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDate(game.date)} às {formatTime(game.time)}
-                      </p>
-                      <p className="text-sm">{game.location}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Máximo: {game.max_players} jogadores
-                      </p>
+                      {editingGameId === game.id ? (
+                        <form
+                          className="space-y-2"
+                          onSubmit={e => {
+                            e.preventDefault()
+                            handleEditGame(game.id)
+                          }}
+                        >
+                          <Input
+                            type="date"
+                            value={editFormData.date}
+                            onChange={e => setEditFormData({ ...editFormData, date: e.target.value })}
+                            required
+                          />
+                          <Input
+                            type="time"
+                            value={editFormData.time}
+                            onChange={e => setEditFormData({ ...editFormData, time: e.target.value })}
+                            required
+                          />
+                          <Input
+                            type="text"
+                            value={editFormData.location}
+                            onChange={e => setEditFormData({ ...editFormData, location: e.target.value })}
+                            required
+                            placeholder="Local"
+                          />
+                          <Input
+                            type="text"
+                            value={editFormData.google_maps_link}
+                            onChange={e => setEditFormData({ ...editFormData, google_maps_link: e.target.value })}
+                            placeholder="Link do Google Maps"
+                          />
+                          <Input
+                            type="number"
+                            min="1"
+                            value={editFormData.max_players}
+                            onChange={e => setEditFormData({ ...editFormData, max_players: parseInt(e.target.value) })}
+                            required
+                            placeholder="Máximo de jogadores"
+                          />
+                          <div className="flex gap-2">
+                            <Button type="submit" className="bg-green-600 text-black">Salvar</Button>
+                            <Button type="button" variant="outline" onClick={cancelEditing}>Cancelar</Button>
+                          </div>
+                        </form>
+                      ) : (
+                        <>
+                          <p className="text-sm text-muted-foreground">
+                            {formatDate(game.date)} às {formatTime(game.time)}
+                          </p>
+                          <p className="text-sm">{game.location}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Máximo: {game.max_players} jogadores
+                          </p>
+                        </>
+                      )}
                     </div>
                     <div className="flex gap-2 mt-2 sm:mt-0">
-                      {game.google_maps_link && (
-                        <Button variant="outline" size="sm" asChild>
-                          <a href={game.google_maps_link} target="_blank" rel="noopener noreferrer">
-                            Ver no Mapa
-                          </a>
+                      {editingGameId !== game.id && (
+                        <Button
+                          className="bg-green-500 hover:bg-green-600 text-black"
+                          size="sm"
+                          onClick={() => startEditing(game)}
+                        >
+                          <FilePenLine className="h-4 w-4" />
                         </Button>
                       )}
                       <Button 
-                        className="bg-red-500 hover:bg-red-600 text-white"
+                        className="bg-red-500 hover:bg-red-600 text-black"
                         size="sm"
                         onClick={() => handleDeleteGame(game.id)}
                       >
-                        <Trash2 className="h-4 w-4" />
-                        Deletar
+                        <Trash2 className="h-4 w-4" />                        
                       </Button>
                     </div>
                   </div>

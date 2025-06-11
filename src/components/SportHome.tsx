@@ -594,7 +594,7 @@ export function SportHome() {
                         </Badge>
                         <Button  
                           onClick={handleCancelPresence}
-                          className="flex-1 bg-primary text-white hover:text-black"
+                          className="flex-1 bg-primary text-black  hover:text-white"
                         ><X className="h-4 w-4" />
                           Cancelar Presença
                         </Button>
@@ -619,7 +619,7 @@ export function SportHome() {
                         <p className="text-xs text-muted-foreground">CPF: {userGuest.cpf}</p>
                       </div>
                       <Button 
-                        className="bg-primary text-white hover:text-black"
+                        className="bg-primary text-black  hover:text-white"
                         size="sm"
                         onClick={handleCancelGuest}
                       >
