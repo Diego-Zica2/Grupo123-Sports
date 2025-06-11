@@ -410,17 +410,54 @@ export function SportHome() {
 
   const handleCancelPresence = async () => {
     if (!nextGame || !user) return
-
+  
     if (!confirm('Tem certeza que deseja cancelar sua presença?')) return
-
+  
     try {
+      // Remove a confirmação do usuário atual
       const { error } = await supabase.rpc('remove_user_confirmation', {
         game_id_param: nextGame.id,
         user_id_param: user.id
       })
-
+  
       if (error) throw error
-
+  
+      // Busca a lista de espera ordenada
+      const { data: waitingData, error: waitingError } = await supabase
+        .from('waiting_list')
+        .select('*')
+        .eq('game_id', nextGame.id)
+        .order('created_at', { ascending: true })
+        .limit(1) // Só precisamos do primeiro
+  
+      if (waitingError) throw waitingError
+  
+      if (waitingData && waitingData.length > 0) {
+        const firstInLine = waitingData[0]
+  
+        // Adiciona o primeiro da lista de espera como confirmado
+        const { error: confirmError } = await supabase
+          .from('game_confirmations')
+          .insert([
+            {
+              game_id: nextGame.id,
+              user_id: firstInLine.user_id,
+            },
+          ])
+  
+        if (confirmError) throw confirmError
+  
+        // Remove o usuário da lista de espera
+        const { error: removeWaitingError } = await supabase
+          .from('waiting_list')
+          .delete()
+          .eq('id', firstInLine.id)
+  
+        if (removeWaitingError) throw removeWaitingError
+  
+        // Opcional: notificar o usuário promovido (pode implementar via e-mail/toast)
+      }
+  
       setUserConfirmed(false)
       setUserGuest(null)
       fetchNextGame()
@@ -437,6 +474,7 @@ export function SportHome() {
       })
     }
   }
+  
 
   const handleCancelGuest = async () => {
     if (!userGuest) return
@@ -469,17 +507,54 @@ export function SportHome() {
   // Função para admin remover usuário confirmado
   const handleAdminRemoveUser = async (confirmationUserId: string) => {
     if (!nextGame || !userProfile || userProfile.role !== 'admin') return
-
+  
     if (!confirm('Tem certeza que deseja remover este usuário do jogo?')) return
-
+  
     try {
+      // Remove a confirmação do usuário selecionado
       const { error } = await supabase.rpc('remove_user_confirmation', {
         game_id_param: nextGame.id,
         user_id_param: confirmationUserId
       })
-
+  
       if (error) throw error
-
+  
+      // Busca a lista de espera ordenada
+      const { data: waitingData, error: waitingError } = await supabase
+        .from('waiting_list')
+        .select('*')
+        .eq('game_id', nextGame.id)
+        .order('created_at', { ascending: true })
+        .limit(1) // Só precisamos do primeiro
+  
+      if (waitingError) throw waitingError
+  
+      if (waitingData && waitingData.length > 0) {
+        const firstInLine = waitingData[0]
+  
+        // Adiciona o primeiro da lista de espera como confirmado
+        const { error: confirmError } = await supabase
+          .from('game_confirmations')
+          .insert([
+            {
+              game_id: nextGame.id,
+              user_id: firstInLine.user_id,
+            },
+          ])
+  
+        if (confirmError) throw confirmError
+  
+        // Remove o usuário da lista de espera
+        const { error: removeWaitingError } = await supabase
+          .from('waiting_list')
+          .delete()
+          .eq('id', firstInLine.id)
+  
+        if (removeWaitingError) throw removeWaitingError
+  
+        // Opcional: notificar o usuário promovido
+      }
+  
       fetchNextGame()
       toast({
         title: 'Usuário removido',
@@ -494,6 +569,7 @@ export function SportHome() {
       })
     }
   }
+  
 
   // Função para admin remover convidado
   const handleAdminRemoveGuest = async (guestId: string) => {
