@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -9,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { GuestForm } from '@/components/GuestForm'
 import { toast } from '@/hooks/use-toast'
-import { Calendar, Clock, MapPin, Users, X, Trash2, CheckCheck, ListChecks, SmilePlus } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, X, Trash2, CheckCheck, ListChecks, SmilePlus, Clock10 } from 'lucide-react'
 
 interface Sport {
   id: string
@@ -61,6 +60,14 @@ interface Guest {
   invited_by?: UserProfile
 }
 
+interface WaitingListEntry {
+  id: string
+  game_id: string
+  user_id: string
+  created_at: string
+  user?: UserProfile
+}
+
 export function SportHome() {
   const { sportId } = useParams()
   const navigate = useNavigate()
@@ -69,7 +76,9 @@ export function SportHome() {
   const [nextGame, setNextGame] = useState<Game | null>(null)
   const [confirmations, setConfirmations] = useState<GameConfirmation[]>([])
   const [guests, setGuests] = useState<Guest[]>([])
+  const [waitingList, setWaitingList] = useState<WaitingListEntry[]>([])
   const [userConfirmed, setUserConfirmed] = useState(false)
+  const [userInWaitingList, setUserInWaitingList] = useState(false)
   const [userGuest, setUserGuest] = useState<Guest | null>(null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -241,11 +250,60 @@ export function SportHome() {
           cpf: userGuestData.cpf,
           created_at: userGuestData.created_at
         } : null)
+
+        // Buscar lista de espera
+        const { data: waitingData, error: waitingError } = await supabase
+          .from('waiting_list')
+          .select('*')
+          .eq('game_id', gameData[0].id)
+          .order('created_at', { ascending: true })
+
+        if (waitingError) throw waitingError
+
+        // Buscar dados dos usuários na lista de espera
+        if (waitingData && waitingData.length > 0) {
+          const waitingUserIds = waitingData.map(w => w.user_id)
+          const { data: waitingUsersData, error: waitingUsersError } = await supabase
+            .from('users')
+            .select('*')
+            .in('id', waitingUserIds)
+
+          if (waitingUsersError) throw waitingUsersError
+
+          // Mapear lista de espera com dados dos usuários
+          const waitingListWithUsers: WaitingListEntry[] = waitingData.map(waiting => {
+            const userData = waitingUsersData?.find(u => u.id === waiting.user_id)
+            return {
+              id: waiting.id,
+              game_id: waiting.game_id,
+              user_id: waiting.user_id,
+              created_at: waiting.created_at,
+              user: userData ? {
+                id: userData.id,
+                email: userData.email,
+                full_name: userData.full_name,
+                role: userData.role as 'admin' | 'player',
+                created_at: userData.created_at
+              } : undefined
+            }
+          })
+
+          setWaitingList(waitingListWithUsers)
+        } else {
+          setWaitingList([])
+        }
+
+        // Verificar se usuário está na lista de espera
+        const userInWaiting = waitingData?.find(w => w.user_id === user?.id)
+        setUserInWaitingList(!!userInWaiting)
+
       } else {
         setNextGame(null)
         setConfirmations([])
         setGuests([])
+        setWaitingList([])
         setUserConfirmed(false)
+        setUserInWaitingList(false)
         setUserGuest(null)
       }
     } catch (error) {
@@ -286,26 +344,79 @@ export function SportHome() {
     }
   }
 
-  const handleCancelPresence = async () => {
+  const handleJoinWaitingList = async () => {
     if (!nextGame || !user) return
-
-    if (!confirm('Tem certeza que deseja cancelar sua presença?')) return
 
     try {
       const { error } = await supabase
-        .from('game_confirmations')
+        .from('waiting_list')
+        .insert([
+          {
+            game_id: nextGame.id,
+            user_id: user.id,
+          },
+        ])
+
+      if (error) throw error
+
+      setUserInWaitingList(true)
+      fetchNextGame()
+      toast({
+        title: 'Adicionado à lista de espera!',
+        description: 'Você foi adicionado à lista de espera.',
+      })
+    } catch (error) {
+      console.error('Error joining waiting list:', error)
+      toast({
+        title: 'Erro',
+        description: 'Erro ao entrar na lista de espera. Tente novamente.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleLeaveWaitingList = async () => {
+    if (!nextGame || !user) return
+
+    if (!confirm('Tem certeza que deseja sair da lista de espera?')) return
+
+    try {
+      const { error } = await supabase
+        .from('waiting_list')
         .delete()
         .eq('game_id', nextGame.id)
         .eq('user_id', user.id)
 
       if (error) throw error
 
-      if (userGuest) {
-        await supabase
-          .from('guests')
-          .delete()
-          .eq('id', userGuest.id)
-      }
+      setUserInWaitingList(false)
+      fetchNextGame()
+      toast({
+        title: 'Removido da lista de espera',
+        description: 'Você foi removido da lista de espera.',
+      })
+    } catch (error) {
+      console.error('Error leaving waiting list:', error)
+      toast({
+        title: 'Erro',
+        description: 'Erro ao sair da lista de espera. Tente novamente.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleCancelPresence = async () => {
+    if (!nextGame || !user) return
+
+    if (!confirm('Tem certeza que deseja cancelar sua presença?')) return
+
+    try {
+      const { error } = await supabase.rpc('remove_user_confirmation', {
+        game_id_param: nextGame.id,
+        user_id_param: user.id
+      })
+
+      if (error) throw error
 
       setUserConfirmed(false)
       setUserGuest(null)
@@ -330,10 +441,9 @@ export function SportHome() {
     if (!confirm('Tem certeza que deseja cancelar seu convidado?')) return
 
     try {
-      const { error } = await supabase
-        .from('guests')
-        .delete()
-        .eq('id', userGuest.id)
+      const { error } = await supabase.rpc('remove_guest', {
+        guest_id_param: userGuest.id
+      })
 
       if (error) throw error
 
@@ -360,23 +470,12 @@ export function SportHome() {
     if (!confirm('Tem certeza que deseja remover este usuário do jogo?')) return
 
     try {
-      // Remover confirmação
-      const { error: confirmationError } = await supabase
-        .from('game_confirmations')
-        .delete()
-        .eq('game_id', nextGame.id)
-        .eq('user_id', confirmationUserId)
+      const { error } = await supabase.rpc('remove_user_confirmation', {
+        game_id_param: nextGame.id,
+        user_id_param: confirmationUserId
+      })
 
-      if (confirmationError) throw confirmationError
-
-      // Remover convidado associado
-      const { error: guestError } = await supabase
-        .from('guests')
-        .delete()
-        .eq('game_id', nextGame.id)
-        .eq('user_id', confirmationUserId)
-
-      if (guestError) throw guestError
+      if (error) throw error
 
       fetchNextGame()
       toast({
@@ -400,11 +499,9 @@ export function SportHome() {
     if (!confirm('Tem certeza que deseja remover este convidado?')) return
 
     try {
-      // Delete direto na tabela guests
-      const { error } = await supabase
-        .from('guests')
-        .delete()
-        .eq('id', guestId)
+      const { error } = await supabase.rpc('remove_guest', {
+        guest_id_param: guestId
+      })
 
       if (error) throw error
 
@@ -418,6 +515,63 @@ export function SportHome() {
       toast({
         title: 'Erro',
         description: 'Erro ao remover convidado. Tente novamente.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Função para admin remover usuário da lista de espera
+  const handleAdminRemoveFromWaitingList = async (waitingUserId: string) => {
+    if (!nextGame || !userProfile || userProfile.role !== 'admin') return
+
+    if (!confirm('Tem certeza que deseja remover este usuário da lista de espera?')) return
+
+    try {
+      const { error } = await supabase.rpc('remove_user_from_waiting_list', {
+        game_id_param: nextGame.id,
+        user_id_param: waitingUserId
+      })
+
+      if (error) throw error
+
+      fetchNextGame()
+      toast({
+        title: 'Usuário removido da lista de espera',
+        description: 'O usuário foi removido da lista de espera.',
+      })
+    } catch (error) {
+      console.error('Error removing user from waiting list:', error)
+      toast({
+        title: 'Erro',
+        description: 'Erro ao remover usuário da lista de espera. Tente novamente.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Função para admin processar lista de espera
+  const handleProcessWaitingList = async () => {
+    if (!nextGame || !userProfile || userProfile.role !== 'admin') return
+
+    if (!confirm('Tem certeza que deseja fechar a lista de confirmados e processar a lista de espera?')) return
+
+    try {
+      const { data, error } = await supabase.rpc('process_waiting_list_and_confirm', {
+        game_id_param: nextGame.id
+      })
+
+      if (error) throw error
+
+      fetchNextGame()
+      toast({
+        title: 'Lista processada!',
+        description: 'A lista de espera foi processada e colaboradores foram confirmados.',
+      })
+    } catch (error) {
+      console.error('Error processing waiting list:', error)
+      toast({
+        title: 'Erro',
+        description: 'Erro ao processar lista de espera. Tente novamente.',
         variant: 'destructive',
       })
     }
@@ -453,6 +607,12 @@ export function SportHome() {
         return '🏃'
     }
   }
+
+  // Verificar se pode adicionar convidado (limite de 10)
+  const canAddGuest = guests.length < 10 && userConfirmed && !userGuest
+
+  // Verificar se jogo está lotado
+  const isGameFull = confirmations.length + guests.length >= (nextGame?.max_players || 0)
 
   if (loading) {
     return (
@@ -510,7 +670,6 @@ export function SportHome() {
                 Admin
               </Button>
             )}
-            {/* <ThemeToggle /> */}
             <Button variant="outline" onClick={signOut}>
               Sair
             </Button>
@@ -551,7 +710,7 @@ export function SportHome() {
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {confirmations.length}/{nextGame.max_players} jogadores
+                        {confirmations.length + guests.length}/{nextGame.max_players} jogadores
                       </span>
                     </div>
                   </div>
@@ -573,43 +732,74 @@ export function SportHome() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-2 ">
-                    {!userConfirmed ? (
-                      <Button 
-                        onClick={handleConfirmPresence}
-                        className="flex-1"
-                        disabled={confirmations.length >= nextGame.max_players}
-                      >
-                        <CheckCheck  className="h-4 w-4" />
-                        {confirmations.length >= nextGame.max_players 
-                          ? 'Jogo Lotado' 
-                          : 'Confirmar Presença'
-                        }
-                      </Button>
-                    ) : (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    {!userConfirmed && !userInWaitingList ? (
+                      <>
+                        <Button 
+                          onClick={handleConfirmPresence}
+                          className="flex-1"
+                          disabled={isGameFull}
+                        >
+                          <CheckCheck className="h-4 w-4" />
+                          {isGameFull ? 'Jogo Lotado' : 'Confirmar Presença'}
+                        </Button>
+                        {isGameFull && (
+                          <Button 
+                            onClick={handleJoinWaitingList}
+                            variant="secondary"
+                            className="flex-1"
+                          >
+                            <Clock10 className="h-4 w-4" />
+                            Entrar na Lista de Espera
+                          </Button>
+                        )}
+                      </>
+                    ) : userConfirmed ? (
                       <>
                         <Badge className="flex-1 justify-center py-2 gap-2 hover:bg-transparent bg-transparent border-[#00ad46] text-[#00ad46]">
-                          <CheckCheck  className="h-4 w-4" />
-                           Presença Confirmada
+                          <CheckCheck className="h-4 w-4" />
+                          Presença Confirmada
                         </Badge>
                         <Button  
                           onClick={handleCancelPresence}
-                          className="flex-1 bg-primary text-black  hover:text-white"
-                        ><X className="h-4 w-4" />
+                          className="flex-1 bg-primary text-black hover:text-white"
+                        >
+                          <X className="h-4 w-4" />
                           Cancelar Presença
                         </Button>
                       </>
-                    )}
+                    ) : userInWaitingList ? (
+                      <>
+                        <Badge className="flex-1 justify-center py-2 gap-2 hover:bg-transparent bg-transparent border-orange-500 text-orange-500">
+                          <Clock10 className="h-4 w-4" />
+                          Na Lista de Espera
+                        </Badge>
+                        <Button  
+                          onClick={handleLeaveWaitingList}
+                          variant="secondary"
+                          className="flex-1"
+                        >
+                          <X className="h-4 w-4" />
+                          Sair da Lista de Espera
+                        </Button>
+                      </>
+                    ) : null}
                   </div>
 
-                  {userConfirmed && !userGuest && (
+                  {canAddGuest && (
                     <Button 
                       variant="secondary" 
                       onClick={() => setShowGuestForm(true)}
                       className="w-full"
                     >
-                      Adicionar Convidado
+                      Adicionar Convidado ({guests.length}/10)
                     </Button>
+                  )}
+
+                  {guests.length >= 10 && (
+                    <div className="text-center p-2 bg-orange-100 text-orange-800 rounded-lg text-sm">
+                      Limite de convidados atingido (10/10)
+                    </div>
                   )}
 
                   {userGuest && (
@@ -619,7 +809,7 @@ export function SportHome() {
                         <p className="text-xs text-muted-foreground">CPF: {userGuest.cpf}</p>
                       </div>
                       <Button 
-                        className="bg-primary text-black  hover:text-white"
+                        className="bg-primary text-black hover:text-white"
                         size="sm"
                         onClick={handleCancelGuest}
                       >
@@ -628,17 +818,31 @@ export function SportHome() {
                       </Button>
                     </div>
                   )}
+
+                  {/* Botão Admin para processar lista de espera */}
+                  {userProfile?.role === 'admin' && (
+                    <Button 
+                      onClick={handleProcessWaitingList}
+                      variant="outline"
+                      className="w-full bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                    >
+                      Fechar Lista de Confirmados e Processar Espera
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </div>
 
-            {/* Jogadores Confirmados */}
+            {/* Jogadores Confirmados e Lista de Espera */}
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg"><ListChecks  className="h-6 w-6" /> Jogadores Confirmados</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <ListChecks className="h-6 w-6" /> 
+                    Jogadores Confirmados
+                  </CardTitle>
                   <CardDescription>
-                    {confirmations.length} de {nextGame.max_players} vagas preenchidas
+                    {confirmations.length + guests.length} de {nextGame.max_players} vagas preenchidas
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -683,9 +887,12 @@ export function SportHome() {
               {guests.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg"><SmilePlus className="h-6 w-6" /> Convidados</CardTitle>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <SmilePlus className="h-6 w-6" /> 
+                      Convidados
+                    </CardTitle>
                     <CardDescription>
-                      {guests.length} convidado(s)
+                      {guests.length} convidado(s) ({guests.length}/10)
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -714,6 +921,51 @@ export function SportHome() {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => handleAdminRemoveGuest(guest.id)}
+                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {waitingList.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Clock10 className="h-6 w-6" /> 
+                      Lista de Espera
+                    </CardTitle>
+                    <CardDescription>
+                      {waitingList.length} pessoa(s) na lista de espera
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {waitingList.map((waiting) => (
+                        <div 
+                          key={waiting.id}
+                          className="flex items-center justify-between p-2 bg-orange-50 rounded"
+                        >
+                          <span className="text-sm font-medium">
+                            {waiting.user?.full_name || waiting.user?.email || 'Usuário Desconhecido'}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {waiting.user_id === user?.id && (
+                              <Badge variant="secondary" className="text-xs">
+                                Você
+                              </Badge>
+                            )}
+                            {userProfile?.role === 'admin' && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleAdminRemoveFromWaitingList(waiting.user_id)}
                                 className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
                               >
                                 <X className="h-3 w-3" />

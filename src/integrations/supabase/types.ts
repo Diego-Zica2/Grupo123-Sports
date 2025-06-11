@@ -213,16 +213,60 @@ export type Database = {
         }
         Relationships: []
       }
+      waiting_list: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waiting_list_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waiting_list_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      process_waiting_list_and_confirm: {
+        Args: { game_id_param: string }
+        Returns: Json
+      }
       remove_guest: {
         Args: { guest_id_param: string }
         Returns: boolean
       }
       remove_user_confirmation: {
+        Args: { game_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
+      remove_user_from_waiting_list: {
         Args: { game_id_param: string; user_id_param: string }
         Returns: boolean
       }
