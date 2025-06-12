@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { GuestForm } from '@/components/GuestForm'
 import { toast } from '@/hooks/use-toast'
-import { Calendar, Clock, MapPin, Users, X, Trash2, CheckCheck, ListChecks, SmilePlus, Clock10 } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, X, Trash2, CheckCheck, ListChecks, SmilePlus, Clock10, UserRoundCheck, UsersRound } from 'lucide-react'
 
 interface Sport {
   id: string
@@ -1024,7 +1024,8 @@ export function SportHome() {
                           key={confirmation.id}
                           className="flex items-center justify-between p-2 bg-muted rounded"
                         >
-                          <span className="text-sm font-medium">
+                          <span className="flex justify-center text-sm font-medium gap-2">
+                            <UserRoundCheck className="h-4 w-4 text-muted-foreground" />
                             {confirmation.user?.full_name || confirmation.user?.email || 'Usuário Desconhecido'}
                           </span>
                           <div className="flex items-center gap-2">
@@ -1051,56 +1052,6 @@ export function SportHome() {
                 </CardContent>
               </Card>
 
-              {guests.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <SmilePlus className="h-6 w-6" /> 
-                      Convidados
-                    </CardTitle>
-                    <CardDescription>
-                      {guests.length} convidado(s) ({guests.length}/10)
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {guests.map((guest) => (
-                        <div 
-                          key={guest.id}
-                          className="flex items-center justify-between p-2 bg-muted rounded"
-                        >
-                          <div>
-                            <span className="text-sm font-medium block">
-                              {guest.name}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              Convidado por: {guest.invited_by?.full_name || guest.invited_by?.email || 'Usuário Desconhecido'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {guest.user_id === user?.id && (
-                              <Badge variant="secondary" className="text-xs">
-                                Seu convidado
-                              </Badge>
-                            )}
-                            {userProfile?.role === 'admin' && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleAdminRemoveGuest(guest.id)}
-                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
               {waitingList.length > 0 && (
                 <Card>
                   <CardHeader>
@@ -1119,7 +1070,8 @@ export function SportHome() {
                           key={waiting.id}
                           className="flex items-center justify-between p-2 bg-muted rounded"
                         >
-                          <span className="text-sm font-medium">
+                          <span className="flex justify-center gap-2 text-sm font-medium">
+                            <UserRoundCheck className="h-4 w-4 text-muted-foreground" />
                             {waiting.user?.full_name || waiting.user?.email || 'Usuário Desconhecido'}
                           </span>
                           <div className="flex items-center gap-2">
@@ -1145,6 +1097,58 @@ export function SportHome() {
                   </CardContent>
                 </Card>
               )}
+
+              {guests.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <SmilePlus className="h-6 w-6" /> 
+                      Convidados
+                    </CardTitle>
+                    <CardDescription>
+                      {guests.length} convidado(s) ({guests.length}/10)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {guests.map((guest) => (
+                        <div 
+                          key={guest.id}
+                          className="flex items-center justify-between p-2 bg-muted rounded"
+                        >
+                          <div>
+                            <span className="flex justify-left gap-2 text-sm font-medium block">
+                              <UsersRound className="h-4 w-4 text-muted-foreground" />
+                              {guest.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              Convidado por: {guest.invited_by?.full_name || guest.invited_by?.email || 'Usuário Desconhecido'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {guest.user_id === user?.id && (
+                              <Badge variant="secondary" className="text-xs">
+                                Convidado
+                              </Badge>
+                            )}
+                            {userProfile?.role === 'admin' && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleAdminRemoveGuest(guest.id)}
+                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
             </div>
           </div>
         )}

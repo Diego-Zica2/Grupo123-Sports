@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
-import { Trash2, Edit, Plus } from 'lucide-react'
+import { Trash2, FilePenLine, Plus } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 interface Domain {
@@ -173,7 +173,7 @@ export function DomainManagement() {
         </div>
         
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-          <DialogTrigger asChild>
+          <DialogTrigger asChild className='text-black hover:text-white'>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
               Adicionar Domínio
@@ -229,16 +229,16 @@ export function DomainManagement() {
                   </div>
                   <div className="flex space-x-2">
                     <Button
-                      variant="outline"
+                      className="bg-green-500 hover:bg-green-600 text-black w-10 h-9"
                       size="sm"
                       onClick={() => openEditDialog(domain)}
                     >
-                      <Edit className="h-4 w-4" />
+                      <FilePenLine className="h-4 w-4" />
                     </Button>
                     
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm">
+                        <Button className="bg-red-500 hover:bg-red-600 text-black w-10 h-9">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>
@@ -253,8 +253,7 @@ export function DomainManagement() {
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={() => handleDeleteDomain(domain.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => handleDeleteDomain(domain.id)}                            
                           >
                             Excluir
                           </AlertDialogAction>

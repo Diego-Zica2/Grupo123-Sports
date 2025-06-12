@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { CheckCircle, Users, CheckCheck } from 'lucide-react'
+import { CheckCircle, Users, CheckCheck, TriangleAlert, Eye } from 'lucide-react'
 
 interface Sport {
   id: string
@@ -173,9 +173,8 @@ export function SportSelection() {
       games.forEach(game => {
         const existing = availabilityMap.get(game.sport_id)
         if (!existing) {
-          const confirmedCount = game.game_confirmations?.length || 0
-          const guestsCount = game.guests?.length || 0
-          const totalOccupied = confirmedCount + guestsCount
+          const confirmedCount = game.game_confirmations?.length || 0          
+          const totalOccupied = confirmedCount
           const availableSpots = Math.max(0, game.max_players - totalOccupied)
 
           availabilityMap.set(game.sport_id, {
@@ -321,9 +320,9 @@ export function SportSelection() {
                     onClick={() => handleSportSelect(sport.id)}
                   >
                     <div className="absolute top-2 right-2 z-10">
-                      <Badge className="dark:bg-[#00ad46] text-white flex items-center gap-1 px-3 py-2 text-base shadow-lg border-2 border-green-400">
-                        <CheckCheck className="h-4 w-4" />
-                        Confirmado
+                      <Badge className="flex items-center gap-1 px-3 py-2 bg-black hover:bg-black text-green-600 text-base shadow-lg">
+                        <CheckCheck className="h-5 w-5" />
+                        CONFIRMADO
                       </Badge>
                     </div>
                     
@@ -338,14 +337,15 @@ export function SportSelection() {
                     <CardContent className="text-center">
                       {userConfirmation?.has_guest && (
                         <div className="mb-3 p-3 bg-green-400 rounded-lg">
-                          <div className="flex items-center justify-center gap-1 text-sm text-gray-800">
+                          <div className="flex items-center justify-center gap-1 text-sm text-black">
                             <Users className="h-4 w-4" />
                             <span>Convidado: {userConfirmation.guest_name}</span>
                           </div>
                         </div>
                       )}
                       
-                      <Button className="w-full">
+                      <Button className="w-full text-black hover:text-white">
+                        <Eye className="h-4 w-4" />
                         Ver Detalhes
                       </Button>
                     </CardContent>
@@ -362,18 +362,21 @@ export function SportSelection() {
                   key={sport.id} 
                   className={`hover:shadow-lg transition-shadow cursor-pointer border-2 relative ${
                     isFull 
-                      ? 'border-red-500 bg-red-50 dark:bg-red-900 dark:hover:bg-red-800' 
+                      ? 'border-red-600 bg-red-600 dark:hover:bg-red-800' 
                       : 'hover:border-primary hover:bg-[#081021]'
                   }`}
                   onClick={() => handleSportSelect(sport.id)}
                 >
                   <div className="absolute top-2 right-2 z-10">
-                    <Badge className={`text-white flex items-center gap-1 px-3 py-2 text-base shadow-lg border-2 ${
+                    <Badge className={`text-white flex items-center gap-1 px-3 py-2 text-base shadow-lg ${
                       isFull 
-                        ? 'bg-red-500 border-red-400' 
-                        : 'bg-blue-500 border-blue-400'
+                        ? 'bg-black text-red-600 hover:bg-black' 
+                        : 'bg-green-500 hover:bg-green-500 text-black'
                     }`}>
-                      {isFull ? 'Lotado' : `${availableSpots} Vagas`}
+                      {isFull 
+                        ? (<><TriangleAlert  className="w-5 h-5" /> LOTADO</>)
+                        : (<><Users className="w-4 h-4" /> {availableSpots} Vagas</>)
+                      }
                     </Badge>
                   </div>
                   
@@ -386,7 +389,7 @@ export function SportSelection() {
                   </CardHeader>
                   
                   <CardContent className="text-center">
-                    <Button className="w-full">
+                    <Button className="w-full text-black hover:text-white">
                       {isFull ? 'Lista de Espera' : 'Entrar'}
                     </Button>
                   </CardContent>

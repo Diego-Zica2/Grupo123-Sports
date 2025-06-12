@@ -267,9 +267,9 @@ export function GameManagement() {
                   sport_id: getSportIdByName('Vôlei'),
                   date: getNextWeekdayDate(6),
                   time: '12:00',
-                  location: 'Arena Túnel - Quadra 01 | Entrada pela Rua Itaguara 55',
+                  location: 'Arena Túnel - Quadra 01 | Entrada pela Rua Itaguara 55, BH-MG',
                   google_maps_link: 'https://maps.app.goo.gl/Gzh9c2FREp2dGzCB6',
-                  max_players: 30
+                  max_players: 24
                 });
               }}              
               className="flex items-center gap-2 w-full sm:w-auto bg-green-600 hover:bg-primary text-black"
@@ -283,8 +283,8 @@ export function GameManagement() {
                   sport_id: getSportIdByName('Futebol'),
                   date: getNextWeekdayDate(4),
                   time: '19:00',
-                  location: 'Arena Túnel - Quadra 01 | Entrada pela Rua Itaguara 55',
-                  google_maps_link: 'https://maps.app.goo.gl/Gzh9c2FREp2dGzCB6',
+                  location: 'Rua Mariana, Praça 12 de Dezembro, 654 - Bonfim, BH-MG',
+                  google_maps_link: 'https://maps.app.goo.gl/PHTsUSM8tyBqKAUv7',
                   max_players: 16
                 });
               }}              
