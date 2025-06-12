@@ -12,6 +12,7 @@ import { UpdatePassword } from '@/components/auth/UpdatePassword';
 import { SportSelection } from '@/components/SportSelection';
 import { SportHome } from '@/components/SportHome';
 import { AdminPanel } from '@/components/AdminPanel';
+import { Footer } from '@/components/Footer';
 
 const queryClient = new QueryClient();
 
@@ -38,47 +39,52 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AppContent() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route 
-          path="/" 
-          element={
-            <ProtectedRoute>
-              <SportSelection />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/sports" 
-          element={
-            <ProtectedRoute>
-              <SportSelection />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/sport/:sportId" 
-          element={
-            <ProtectedRoute>
-              <SportHome />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/admin" 
-          element={
-            <ProtectedRoute>
-              <AdminPanel />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/reset-password" 
-          element={<UpdatePassword />} 
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <div className="min-h-screen flex flex-col">
+      <BrowserRouter>
+        <div className="flex-1">
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                <ProtectedRoute>
+                  <SportSelection />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/sports" 
+              element={
+                <ProtectedRoute>
+                  <SportSelection />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/sport/:sportId" 
+              element={
+                <ProtectedRoute>
+                  <SportHome />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute>
+                  <AdminPanel />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/reset-password" 
+              element={<UpdatePassword />} 
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </div>
+        <Footer />
+      </BrowserRouter>
+    </div>
   )
 }
 
