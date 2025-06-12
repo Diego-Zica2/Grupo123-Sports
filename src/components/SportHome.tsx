@@ -957,8 +957,7 @@ export function SportHome() {
                         size="sm"
                         onClick={handleCancelGuest}
                       >
-                        <Trash2 className="h-4 w-4" />
-                        Remover
+                        <Trash2 className="h-4 w-4" />                        
                       </Button>
                     </div>
                   )}

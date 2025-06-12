@@ -10,6 +10,7 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { GameManagement } from '@/components/admin/GameManagement'
 import { UserManagement } from '@/components/admin/UserManagement'
 import { DomainManagement } from '@/components/admin/DomainManagement'
+import { AtSign, Gamepad2, UsersRound } from 'lucide-react'
 
 interface UserProfile {
   id: string
@@ -137,9 +138,9 @@ export function AdminPanel() {
         </div>
         <Tabs defaultValue="games" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="games">Gerenciar Jogos</TabsTrigger>
-            <TabsTrigger value="users">Gerenciar Usuários</TabsTrigger>
-            <TabsTrigger value="domains">Gerenciar Domínios</TabsTrigger>
+            <TabsTrigger value="games"><Gamepad2 className="h-5 w-5" /></TabsTrigger>
+            <TabsTrigger value="users"><UsersRound className="h-5 w-5" /></TabsTrigger>
+            <TabsTrigger value="domains"><AtSign className="h-5 w-5" /></TabsTrigger>
           </TabsList>
           
           <TabsContent value="games" className="mt-6">
