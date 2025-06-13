@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { Trash2 } from 'lucide-react'
 
 interface User {
   id: string
@@ -19,6 +20,7 @@ export function UserManagement() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [updatingUser, setUpdatingUser] = useState<string | null>(null)
+  const [deletingUser, setDeletingUser] = useState<string | null>(null)
 
   useEffect(() => {
     fetchUsers()
@@ -59,7 +61,13 @@ export function UserManagement() {
       if (error) throw error
 
       toast.success(`Usuário ${newRole === 'admin' ? 'promovido a administrador' : 'definido como jogador'}`)
-      fetchUsers()
+      
+      // Atualizar o estado local imediatamente
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === userId ? { ...user, role: newRole } : user
+        )
+      )
     } catch (error) {
       console.error('Error updating user role:', error)
       toast.error('Erro ao atualizar usuário')
@@ -68,10 +76,33 @@ export function UserManagement() {
     }
   }
 
-  const banUser = async (userId: string) => {
-    // Para implementar o banimento, você pode adicionar uma coluna 'banned' na tabela users
-    // Por enquanto, vou mostrar um toast indicando que seria implementado
-    toast.info('Funcionalidade de banimento será implementada em breve')
+  const deleteUser = async (userId: string) => {
+    setDeletingUser(userId)
+    
+    try {
+      // Primeiro deletar todas as dependências do usuário
+      await supabase.from('game_confirmations').delete().eq('user_id', userId)
+      await supabase.from('waiting_list').delete().eq('user_id', userId)
+      await supabase.from('guests').delete().eq('user_id', userId)
+      
+      // Depois deletar o usuário da tabela users
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', userId)
+
+      if (error) throw error
+
+      toast.success('Usuário deletado com sucesso')
+      
+      // Atualizar o estado local removendo o usuário
+      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId))
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      toast.error('Erro ao deletar usuário')
+    } finally {
+      setDeletingUser(null)
+    }
   }
 
   if (loading) {
@@ -146,12 +177,16 @@ export function UserManagement() {
                         </Select>
                         
                         <Button
-                          className="bg-red-500 hover:bg-red-600 text-white"
+                          variant="destructive"
                           size="sm"
-                          onClick={() => banUser(user.id)}
-                          disabled={user.role === 'admin'}
+                          onClick={() => deleteUser(user.id)}
+                          disabled={deletingUser === user.id}
                         >
-                          Banir
+                          {deletingUser === user.id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                     </TableCell>
