@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Trash2, CalendarPlus2, FilePenLine } from 'lucide-react'
 import { toast } from 'sonner'
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog'
 
 interface Sport {
   id: string
@@ -214,7 +215,12 @@ export function GameManagement() {
     if (daysAhead <= 0) daysAhead += 7;
     const nextDate = new Date(today);
     nextDate.setDate(today.getDate() + daysAhead);
-    return nextDate.toISOString().split('T')[0];
+  
+    // Formatar como YYYY-MM-DD no fuso local
+    const year = nextDate.getFullYear();
+    const month = String(nextDate.getMonth() + 1).padStart(2, '0');
+    const date = String(nextDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${date}`;
   }
 
   function getSportIdByName(name: string) {
@@ -463,13 +469,30 @@ export function GameManagement() {
                           <FilePenLine className="h-4 w-4" />
                         </Button>
                       )}
-                      <Button 
-                        className="bg-red-500 hover:bg-red-600 text-black"
-                        size="sm"
-                        onClick={() => handleDeleteGame(game.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />                        
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button className="bg-red-500 hover:bg-red-600 text-black" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem certeza que deseja remover a partida de <strong>{game.sport?.name}</strong> marcada para <strong>{formatDate(game.date)}</strong> às <strong>{formatTime(game.time)}</strong>?<br />
+                              Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteGame(game.id)}
+                            >
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </div>

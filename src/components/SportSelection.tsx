@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { CheckCircle, Users, CheckCheck, TriangleAlert, Eye } from 'lucide-react'
+import { Clock, Users, CheckCheck, TriangleAlert, Eye, UserRoundCheck } from 'lucide-react'
 
 interface Sport {
   id: string
@@ -390,7 +390,17 @@ export function SportSelection() {
                   
                   <CardContent className="text-center">
                     <Button className="w-full text-black hover:text-white">
-                      {isFull ? 'Lista de Espera' : 'Entrar'}
+                      {isFull ? (
+                        <>
+                          <Clock className="inline-block  h-4 w-4" />
+                          Entra na Lista de Espera
+                        </>
+                      ) : (
+                        <>
+                          <UserRoundCheck className="inline-block h-4 w-4" />
+                          Entrar
+                        </>
+                      )}
                     </Button>
                   </CardContent>
                 </Card>

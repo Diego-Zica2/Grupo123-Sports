@@ -5,10 +5,20 @@ import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import { GuestForm } from '@/components/GuestForm'
 import { toast } from '@/hooks/use-toast'
 import { Calendar, Clock, MapPin, Users, X, Trash2, CheckCheck, ListChecks, SmilePlus, Clock10, UserRoundCheck, UsersRound } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog'
 
 interface Sport {
   id: string
@@ -83,9 +93,14 @@ export function SportHome() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [showGuestForm, setShowGuestForm] = useState(false)
-  const [showProcessedList, setShowProcessedList] = useState(false);
-  const [processedList, setProcessedList] = useState<string>('');
+  const [showProcessedList, setShowProcessedList] = useState(false)
+  const [processedList, setProcessedList] = useState<string>('')
 
+  // Estados para AlertDialog
+  const [alertDialog, setAlertDialog] = useState<null | {
+    type: 'leave-waiting-list' | 'cancel-presence' | 'cancel-guest' | 'admin-remove-user' | 'admin-remove-guest' | 'admin-remove-waiting'
+    payload?: any
+  }>(null)
 
   useEffect(() => {
     if (sportId) {
@@ -99,16 +114,13 @@ export function SportHome() {
 
   const fetchUserProfile = async () => {
     if (!user) return
-
     try {
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', user.id)
         .single()
-
       if (error) throw error
-      
       const profileData: UserProfile = {
         id: data.id,
         email: data.email,
@@ -129,7 +141,6 @@ export function SportHome() {
         .select('*')
         .eq('id', sportId)
         .single()
-
       if (error) throw error
       setSport(data)
     } catch (error) {
@@ -140,7 +151,6 @@ export function SportHome() {
 
   const fetchNextGame = async () => {
     try {
-      // Buscar próximo jogo visível
       const { data: gameData, error: gameError } = await supabase
         .from('games')
         .select('*')
@@ -149,31 +159,21 @@ export function SportHome() {
         .gte('date', new Date().toISOString().split('T')[0])
         .order('date', { ascending: true })
         .limit(1)
-
       if (gameError) throw gameError
-
       if (gameData && gameData.length > 0) {
         setNextGame(gameData[0])
-        
-        // Buscar confirmações com dados dos usuários
         const { data: confirmData, error: confirmError } = await supabase
           .from('game_confirmations')
           .select('*')
           .eq('game_id', gameData[0].id)
-
         if (confirmError) throw confirmError
-
-        // Buscar dados dos usuários que confirmaram
         if (confirmData && confirmData.length > 0) {
           const userIds = confirmData.map(c => c.user_id)
           const { data: usersData, error: usersError } = await supabase
             .from('users')
             .select('*')
             .in('id', userIds)
-
           if (usersError) throw usersError
-
-          // Mapear confirmações com dados dos usuários
           const confirmationsWithUsers: GameConfirmation[] = confirmData.map(confirmation => {
             const userData = usersData?.find(u => u.id === confirmation.user_id)
             return {
@@ -190,35 +190,24 @@ export function SportHome() {
               } : undefined
             }
           })
-
           setConfirmations(confirmationsWithUsers)
         } else {
           setConfirmations([])
         }
-
-        // Verificar se usuário atual confirmou
         const userConfirmation = confirmData?.find(c => c.user_id === user?.id)
         setUserConfirmed(!!userConfirmation)
-
-        // Buscar convidados
         const { data: guestData, error: guestError } = await supabase
           .from('guests')
           .select('*')
           .eq('game_id', gameData[0].id)
-
         if (guestError) throw guestError
-
-        // Buscar dados dos usuários que convidaram
         if (guestData && guestData.length > 0) {
           const inviterIds = guestData.map(g => g.user_id)
           const { data: invitersData, error: invitersError } = await supabase
             .from('users')
             .select('*')
             .in('id', inviterIds)
-
           if (invitersError) throw invitersError
-
-          // Mapear convidados com dados de quem convidou
           const guestsWithInviters: Guest[] = guestData.map(guest => {
             const inviterData = invitersData?.find(u => u.id === guest.user_id)
             return {
@@ -237,13 +226,10 @@ export function SportHome() {
               } : undefined
             }
           })
-
           setGuests(guestsWithInviters)
         } else {
           setGuests([])
         }
-
-        // Verificar se usuário tem convidado
         const userGuestData = guestData?.find(g => g.user_id === user?.id)
         setUserGuest(userGuestData ? {
           id: userGuestData.id,
@@ -253,27 +239,19 @@ export function SportHome() {
           cpf: userGuestData.cpf,
           created_at: userGuestData.created_at
         } : null)
-
-        // Buscar lista de espera
         const { data: waitingData, error: waitingError } = await supabase
           .from('waiting_list')
           .select('*')
           .eq('game_id', gameData[0].id)
           .order('created_at', { ascending: true })
-
         if (waitingError) throw waitingError
-
-        // Buscar dados dos usuários na lista de espera
         if (waitingData && waitingData.length > 0) {
           const waitingUserIds = waitingData.map(w => w.user_id)
           const { data: waitingUsersData, error: waitingUsersError } = await supabase
             .from('users')
             .select('*')
             .in('id', waitingUserIds)
-
           if (waitingUsersError) throw waitingUsersError
-
-          // Mapear lista de espera com dados dos usuários
           const waitingListWithUsers: WaitingListEntry[] = waitingData.map(waiting => {
             const userData = waitingUsersData?.find(u => u.id === waiting.user_id)
             return {
@@ -290,16 +268,12 @@ export function SportHome() {
               } : undefined
             }
           })
-
           setWaitingList(waitingListWithUsers)
         } else {
           setWaitingList([])
         }
-
-        // Verificar se usuário está na lista de espera
         const userInWaiting = waitingData?.find(w => w.user_id === user?.id)
         setUserInWaitingList(!!userInWaiting)
-
       } else {
         setNextGame(null)
         setConfirmations([])
@@ -318,7 +292,6 @@ export function SportHome() {
 
   const handleConfirmPresence = async () => {
     if (!nextGame || !user) return
-
     try {
       const { error } = await supabase
         .from('game_confirmations')
@@ -328,9 +301,7 @@ export function SportHome() {
             user_id: user.id,
           },
         ])
-
       if (error) throw error
-
       setUserConfirmed(true)
       fetchNextGame()
       toast({
@@ -349,7 +320,6 @@ export function SportHome() {
 
   const handleJoinWaitingList = async () => {
     if (!nextGame || !user) return
-
     try {
       const { error } = await supabase
         .from('waiting_list')
@@ -359,9 +329,7 @@ export function SportHome() {
             user_id: user.id,
           },
         ])
-
       if (error) throw error
-
       setUserInWaitingList(true)
       fetchNextGame()
       toast({
@@ -378,20 +346,16 @@ export function SportHome() {
     }
   }
 
+  // Todas as funções de exclusão/remoção agora NÃO possuem confirm(), apenas executam
   const handleLeaveWaitingList = async () => {
     if (!nextGame || !user) return
-
-    if (!confirm('Tem certeza que deseja sair da lista de espera?')) return
-
     try {
       const { error } = await supabase
         .from('waiting_list')
         .delete()
         .eq('game_id', nextGame.id)
         .eq('user_id', user.id)
-
       if (error) throw error
-
       setUserInWaitingList(false)
       fetchNextGame()
       toast({
@@ -410,32 +374,21 @@ export function SportHome() {
 
   const handleCancelPresence = async () => {
     if (!nextGame || !user) return
-  
-    if (!confirm('Tem certeza que deseja cancelar sua presença?')) return
-  
     try {
-      // Remove a confirmação do usuário atual
       const { error } = await supabase.rpc('remove_user_confirmation', {
         game_id_param: nextGame.id,
         user_id_param: user.id
       })
-  
       if (error) throw error
-  
-      // Busca a lista de espera ordenada
       const { data: waitingData, error: waitingError } = await supabase
         .from('waiting_list')
         .select('*')
         .eq('game_id', nextGame.id)
         .order('created_at', { ascending: true })
-        .limit(1) // Só precisamos do primeiro
-  
+        .limit(1)
       if (waitingError) throw waitingError
-  
       if (waitingData && waitingData.length > 0) {
         const firstInLine = waitingData[0]
-  
-        // Adiciona o primeiro da lista de espera como confirmado
         const { error: confirmError } = await supabase
           .from('game_confirmations')
           .insert([
@@ -444,20 +397,13 @@ export function SportHome() {
               user_id: firstInLine.user_id,
             },
           ])
-  
         if (confirmError) throw confirmError
-  
-        // Remove o usuário da lista de espera
         const { error: removeWaitingError } = await supabase
           .from('waiting_list')
           .delete()
           .eq('id', firstInLine.id)
-  
         if (removeWaitingError) throw removeWaitingError
-  
-        // Opcional: notificar o usuário promovido (pode implementar via e-mail/toast)
       }
-  
       setUserConfirmed(false)
       setUserGuest(null)
       fetchNextGame()
@@ -474,20 +420,14 @@ export function SportHome() {
       })
     }
   }
-  
 
   const handleCancelGuest = async () => {
     if (!userGuest) return
-
-    if (!confirm('Tem certeza que deseja cancelar seu convidado?')) return
-
     try {
       const { error } = await supabase.rpc('remove_guest', {
         guest_id_param: userGuest.id
       })
-
       if (error) throw error
-
       setUserGuest(null)
       fetchNextGame()
       toast({
@@ -504,35 +444,23 @@ export function SportHome() {
     }
   }
 
-  // Função para admin remover usuário confirmado
   const handleAdminRemoveUser = async (confirmationUserId: string) => {
     if (!nextGame || !userProfile || userProfile.role !== 'admin') return
-  
-    if (!confirm('Tem certeza que deseja remover este usuário do jogo?')) return
-  
     try {
-      // Remove a confirmação do usuário selecionado
       const { error } = await supabase.rpc('remove_user_confirmation', {
         game_id_param: nextGame.id,
         user_id_param: confirmationUserId
       })
-  
       if (error) throw error
-  
-      // Busca a lista de espera ordenada
       const { data: waitingData, error: waitingError } = await supabase
         .from('waiting_list')
         .select('*')
         .eq('game_id', nextGame.id)
         .order('created_at', { ascending: true })
-        .limit(1) // Só precisamos do primeiro
-  
+        .limit(1)
       if (waitingError) throw waitingError
-  
       if (waitingData && waitingData.length > 0) {
         const firstInLine = waitingData[0]
-  
-        // Adiciona o primeiro da lista de espera como confirmado
         const { error: confirmError } = await supabase
           .from('game_confirmations')
           .insert([
@@ -541,20 +469,13 @@ export function SportHome() {
               user_id: firstInLine.user_id,
             },
           ])
-  
         if (confirmError) throw confirmError
-  
-        // Remove o usuário da lista de espera
         const { error: removeWaitingError } = await supabase
           .from('waiting_list')
           .delete()
           .eq('id', firstInLine.id)
-  
         if (removeWaitingError) throw removeWaitingError
-  
-        // Opcional: notificar o usuário promovido
       }
-  
       fetchNextGame()
       toast({
         title: 'Usuário removido',
@@ -569,21 +490,14 @@ export function SportHome() {
       })
     }
   }
-  
 
-  // Função para admin remover convidado
   const handleAdminRemoveGuest = async (guestId: string) => {
     if (!userProfile || userProfile.role !== 'admin') return
-
-    if (!confirm('Tem certeza que deseja remover este convidado?')) return
-
     try {
       const { error } = await supabase.rpc('remove_guest', {
         guest_id_param: guestId
       })
-
       if (error) throw error
-
       fetchNextGame()
       toast({
         title: 'Convidado removido',
@@ -599,20 +513,14 @@ export function SportHome() {
     }
   }
 
-  // Função para admin remover usuário da lista de espera
   const handleAdminRemoveFromWaitingList = async (waitingUserId: string) => {
     if (!nextGame || !userProfile || userProfile.role !== 'admin') return
-
-    if (!confirm('Tem certeza que deseja remover este usuário da lista de espera?')) return
-
     try {
       const { error } = await supabase.rpc('remove_user_from_waiting_list', {
         game_id_param: nextGame.id,
         user_id_param: waitingUserId
       })
-
       if (error) throw error
-
       fetchNextGame()
       toast({
         title: 'Usuário removido da lista de espera',
@@ -629,116 +537,69 @@ export function SportHome() {
   }
 
   const handleShowProcessedList = () => {
-    if (!nextGame) return;
-  
-    // Ordenar confirmações por data de confirmação
+    if (!nextGame) return
     const sortedConfirmations = [...confirmations].sort((a, b) =>
       new Date(a.confirmed_at).getTime() - new Date(b.confirmed_at).getTime()
-    );
+    )
     const sortedWaitingList = [...waitingList].sort((a, b) =>
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    );
+    )
     const sortedGuests = [...guests].sort((a, b) =>
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    );
-  
-    const maxPlayers = nextGame.max_players;
-    let vagasRestantes = maxPlayers;
-  
-    // 1. Jogadores confirmados
-    const jogadores = sortedConfirmations.slice(0, maxPlayers);
-    vagasRestantes -= jogadores.length;
-  
-    // 2. Lista de espera (se houver vagas)
-    let listaEspera: typeof waitingList = [];
+    )
+    const maxPlayers = nextGame.max_players
+    let vagasRestantes = maxPlayers
+    const jogadores = sortedConfirmations.slice(0, maxPlayers)
+    vagasRestantes -= jogadores.length
+    let listaEspera: typeof waitingList = []
     if (vagasRestantes > 0) {
-      listaEspera = sortedWaitingList.slice(0, vagasRestantes);
-      vagasRestantes -= listaEspera.length;
+      listaEspera = sortedWaitingList.slice(0, vagasRestantes)
+      vagasRestantes -= listaEspera.length
     }
-  
-    // 3. Convidados (se ainda houver vagas)
-    let listaConvidados: typeof guests = [];
+    let listaConvidados: typeof guests = []
     if (vagasRestantes > 0) {
-      listaConvidados = sortedGuests.slice(0, vagasRestantes);
+      listaConvidados = sortedGuests.slice(0, vagasRestantes)
     }
-  
-    // Montar string da lista
-    let output = '';
-    let count = 1;
-
-    output += 'Jogadores Confirmados:\n\n'; // Dupla quebra de linha para espaço
-
+    let output = ''
+    let count = 1
+    output += 'Jogadores Confirmados:\n\n'
     jogadores.forEach(j => {
-      output += `${count++}. ${j.user?.full_name || j.user?.email || 'Usuário'}\n`;
-    });
-
+      output += `${count++}. ${j.user?.full_name || j.user?.email || 'Usuário'}\n`
+    })
     if (listaEspera.length > 0) {
-      output += '\nLista de Espera:\n\n'; // Dupla quebra de linha para espaço
-
+      output += '\nLista de Espera:\n\n'
       listaEspera.forEach(w => {
-        output += `${count++}. ${w.user?.full_name || w.user?.email || 'Usuário'}\n`;
-      });
+        output += `${count++}. ${w.user?.full_name || w.user?.email || 'Usuário'}\n`
+      })
     }
-
     if (listaConvidados.length > 0) {
-      output += '\nConvidados:\n\n'; // Dupla quebra de linha para espaço
-
+      output += '\nConvidados:\n\n'
       listaConvidados.forEach(g => {
-        output += `${count++}. ${g.name}\n`;
-      });
+        output += `${count++}. ${g.name}\n`
+      })
     }
-
-    setProcessedList(output);
-    setShowProcessedList(true);
-  };
-  
-
-  // // Função para admin processar lista de espera
-  // const handleProcessWaitingList = async () => {
-  //   if (!nextGame || !userProfile || userProfile.role !== 'admin') return
-
-  //   if (!confirm('Tem certeza que deseja fechar a lista de confirmados e processar a lista de espera?')) return
-
-  //   try {
-  //     const { data, error } = await supabase.rpc('process_waiting_list_and_confirm', {
-  //       game_id_param: nextGame.id
-  //     })
-
-  //     if (error) throw error
-
-  //     fetchNextGame()
-  //     toast({
-  //       title: 'Lista processada!',
-  //       description: 'A lista de espera foi processada e colaboradores foram confirmados.',
-  //     })
-  //   } catch (error) {
-  //     console.error('Error processing waiting list:', error)
-  //     toast({
-  //       title: 'Erro',
-  //       description: 'Erro ao processar lista de espera. Tente novamente.',
-  //       variant: 'destructive',
-  //     })
-  //   }
-  // }
+    setProcessedList(output)
+    setShowProcessedList(true)
+  }
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString + 'T00:00:00'); // UTC puro
+    const date = new Date(dateString + 'T00:00:00')
     return date.toLocaleDateString('pt-BR', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        timeZone: 'America/Sao_Paulo'
-    });
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      timeZone: 'America/Sao_Paulo'
+    })
   }
 
   const formatTime = (timeString: string) => {
-    const time = new Date(`2000-01-01T${timeString}:00`); // UTC puro
+    const time = new Date(`2000-01-01T${timeString}:00`)
     return time.toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'America/Sao_Paulo'
-    });
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'America/Sao_Paulo'
+    })
   }
 
   const getSportIcon = (sportName: string) => {
@@ -752,10 +613,7 @@ export function SportHome() {
     }
   }
 
-  // Verificar se pode adicionar convidado (limite de 10)
   const canAddGuest = guests.length < 10 && userConfirmed && !userGuest
-
-  // Verificar se jogo está lotado
   const isGameFull = confirmations.length >= (nextGame?.max_players || 0)
 
   if (loading) {
@@ -889,9 +747,8 @@ export function SportHome() {
                         </Button>
                         {isGameFull && (
                           <Button 
-                            onClick={handleJoinWaitingList}
-                            variant="secondary"
-                            className="flex-1"
+                            onClick={handleJoinWaitingList}                            
+                            className="flex-1 bg-yellow-500 hover:bg-yellow-500 text-black hover:text-white"
                           >
                             <Clock10 className="h-4 w-4" />
                             Entrar na Lista de Espera
@@ -904,13 +761,36 @@ export function SportHome() {
                           <CheckCheck className="h-4 w-4" />
                           Presença Confirmada
                         </Badge>
-                        <Button  
-                          onClick={handleCancelPresence}
-                          className="flex-1 bg-primary text-black hover:text-white"
-                        >
-                          <X className="h-4 w-4" />
-                          Cancelar Presença
-                        </Button>
+                        <AlertDialog open={alertDialog?.type === 'cancel-presence'} onOpenChange={open => !open && setAlertDialog(null)}>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              className="flex-1 bg-primary text-black hover:text-white"
+                              onClick={() => setAlertDialog({ type: 'cancel-presence' })}
+                            >
+                              <X className="h-4 w-4" />
+                              Cancelar Presença
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Cancelar presença?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja cancelar sua presença neste jogo? Esta ação pode liberar sua vaga para outro participante.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel onClick={() => setAlertDialog(null)}>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => {
+                                  setAlertDialog(null)
+                                  handleCancelPresence()
+                                }}
+                              >
+                                Confirmar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </>
                     ) : userInWaitingList ? (
                       <>
@@ -918,14 +798,36 @@ export function SportHome() {
                           <Clock10 className="h-4 w-4" />
                           Na Lista de Espera
                         </Badge>
-                        <Button  
-                          onClick={handleLeaveWaitingList}
-                          variant="secondary"
-                          className="flex-1"
-                        >
-                          <X className="h-4 w-4" />
-                          Sair da Lista de Espera
-                        </Button>
+                        <AlertDialog open={alertDialog?.type === 'leave-waiting-list'} onOpenChange={open => !open && setAlertDialog(null)}>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              className="flex-1 text-black hover:text-white"
+                              onClick={() => setAlertDialog({ type: 'leave-waiting-list' })}
+                            >
+                              <X className="h-4 w-4" />
+                              Sair da Lista de Espera
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Sair da lista de espera?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja sair da lista de espera deste jogo? Você perderá sua posição na fila.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel onClick={() => setAlertDialog(null)}>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => {
+                                  setAlertDialog(null)
+                                  handleLeaveWaitingList()
+                                }}
+                              >
+                                Confirmar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </>
                     ) : null}
                   </div>
@@ -946,57 +848,72 @@ export function SportHome() {
                     </div>
                   )}
 
+                  {/* BOX DO CONVIDADO DO USUÁRIO LOGO ABAIXO DO CARD */}
                   {userGuest && (
-                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div className="flex items-center justify-between p-3 mt-4 bg-muted rounded-lg">
                       <div>
                         <p className="text-sm font-medium">Convidado: {userGuest.name}</p>
                         <p className="text-xs text-muted-foreground">CPF: {userGuest.cpf}</p>
                       </div>
-                      <Button 
-                        className="bg-primary text-black hover:text-white"
-                        size="sm"
-                        onClick={handleCancelGuest}
-                      >
-                        <Trash2 className="h-4 w-4" />                        
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Botão Admin para processar lista de espera */}
-                  {userProfile?.role === 'admin' && (
-                    <Button 
-                      onClick={handleShowProcessedList}
-                      variant="outline"
-                      className="w-full bg-transparent border-primary text-primary hover:bg-primary hover:text-black"
-                    >
-                      Processar Lista de Confirmados
-                    </Button>
-                  )}
-                </CardContent>
+                      <AlertDialog open={alertDialog?.type === 'cancel-guest'} onOpenChange={open => !open && setAlertDialog(null)}>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            className="bg-primary text-black hover:text-white"
+                            size="sm"
+                            onClick={() => setAlertDialog({ type: 'cancel-guest' })}
+                          >
+                            <Trash2 className="h-4 w-4" />                        
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remover convidado?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem certeza que deseja remover seu convidado deste jogo? Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setAlertDialog(null)}>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => {
+                                setAlertDialog(null)
+                                handleCancelGuest()
+                              }}
+                            >
+                              Confirmar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                </div>
+              )}
+                </CardContent>                
               </Card>
+
+              
 
               {showProcessedList && (
-              <Card className="mt-6 border-2 border">
-                <CardHeader>
-                  <CardTitle>Lista Processada para Copiar</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <textarea
-                    className="w-full h-48 p-2 border rounded bg-muted text-white"
-                    value={processedList}
-                    readOnly
-                    onFocus={e => e.target.select()}
-                  />
-                  <Button
-                    className="mt-2"
-                    onClick={() => setShowProcessedList(false)}
-                    variant="secondary"
-                  >
-                    Fechar
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+                <Card className="mt-6 border-2 border">
+                  <CardHeader>
+                    <CardTitle>Lista Processada para Copiar</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <textarea
+                      className="w-full h-48 p-2 border rounded bg-muted text-white"
+                      value={processedList}
+                      readOnly
+                      onFocus={e => e.target.select()}
+                    />
+                    <Button
+                      className="mt-2"
+                      onClick={() => setShowProcessedList(false)}
+                      variant="secondary"
+                    >
+                      Fechar
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </div>            
 
             {/* Jogadores Confirmados e Lista de Espera */}
@@ -1034,14 +951,37 @@ export function SportHome() {
                               </Badge>
                             )}
                             {userProfile?.role === 'admin' && confirmation.user_id !== user?.id && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleAdminRemoveUser(confirmation.user_id)}
-                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
+                              <AlertDialog open={alertDialog?.type === 'admin-remove-user' && alertDialog.payload === confirmation.user_id} onOpenChange={open => !open && setAlertDialog(null)}>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setAlertDialog({ type: 'admin-remove-user', payload: confirmation.user_id })}
+                                    className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Remover usuário?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja remover este usuário do jogo? Esta ação não pode ser desfeita.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel onClick={() => setAlertDialog(null)}>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => {
+                                        setAlertDialog(null)
+                                        handleAdminRemoveUser(confirmation.user_id)
+                                      }}
+                                    >
+                                      Confirmar
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             )}
                           </div>
                         </div>
@@ -1050,7 +990,6 @@ export function SportHome() {
                   )}
                 </CardContent>
               </Card>
-
               {waitingList.length > 0 && (
                 <Card>
                   <CardHeader>
@@ -1080,14 +1019,37 @@ export function SportHome() {
                               </Badge>
                             )}
                             {userProfile?.role === 'admin' && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleAdminRemoveFromWaitingList(waiting.user_id)}
-                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
+                              <AlertDialog open={alertDialog?.type === 'admin-remove-waiting' && alertDialog.payload === waiting.user_id} onOpenChange={open => !open && setAlertDialog(null)}>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setAlertDialog({ type: 'admin-remove-waiting', payload: waiting.user_id })}
+                                    className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Remover da lista de espera?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja remover este usuário da lista de espera? Esta ação não pode ser desfeita.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel onClick={() => setAlertDialog(null)}>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => {
+                                        setAlertDialog(null)
+                                        handleAdminRemoveFromWaitingList(waiting.user_id)
+                                      }}
+                                    >
+                                      Confirmar
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             )}
                           </div>
                         </div>
@@ -1096,7 +1058,6 @@ export function SportHome() {
                   </CardContent>
                 </Card>
               )}
-
               {guests.length > 0 && (
                 <Card>
                   <CardHeader>
@@ -1131,14 +1092,37 @@ export function SportHome() {
                               </Badge>
                             )}
                             {userProfile?.role === 'admin' && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleAdminRemoveGuest(guest.id)}
-                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
+                              <AlertDialog open={alertDialog?.type === 'admin-remove-guest' && alertDialog.payload === guest.id} onOpenChange={open => !open && setAlertDialog(null)}>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setAlertDialog({ type: 'admin-remove-guest', payload: guest.id })}
+                                    className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Remover convidado?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja remover este convidado? Esta ação não pode ser desfeita.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel onClick={() => setAlertDialog(null)}>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => {
+                                        setAlertDialog(null)
+                                        handleAdminRemoveGuest(guest.id)
+                                      }}
+                                    >
+                                      Confirmar
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             )}
                           </div>
                         </div>
@@ -1147,7 +1131,6 @@ export function SportHome() {
                   </CardContent>
                 </Card>
               )}
-              
             </div>
           </div>
         )}
