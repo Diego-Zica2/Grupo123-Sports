@@ -149,8 +149,8 @@ export function UserManagement() {
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         user.role === 'admin' 
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' 
-                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                          ? 'bg-black text-red-500' 
+                          : 'bg-black text-green-500'
                       }`}>
                         {user.role === 'admin' ? 'Administrador' : 'Jogador'}
                       </span>
@@ -177,7 +177,7 @@ export function UserManagement() {
                         </Select>
                         
                         <Button
-                          variant="destructive"
+                          className='bg-red-500 hover:bg-red-600 text-black'
                           size="sm"
                           onClick={() => deleteUser(user.id)}
                           disabled={deletingUser === user.id}
