@@ -371,11 +371,11 @@ export function SportSelection() {
                 return (
                   <Card 
                     key={sport.id} 
-                    className="hover:shadow-lg transition-shadow cursor-pointer border-2 border-[#00ad46] bg-green-50 dark:bg-[#00ad46] dark:hover:bg-[#009a3e] relative"
+                    className="hover:shadow-lg transition-shadow cursor-pointer bg-green-50 dark:bg-[#00ad46] dark:hover:bg-[#009a3e] relative"
                     onClick={() => handleSportSelect(sport.id)}
                   >
                     <div className="absolute top-2 right-2 z-10">
-                      <Badge className="flex items-center gap-1 px-3 py-2 bg-black hover:bg-black text-green-600 text-base shadow-lg">
+                      <Badge className="flex items-center gap-1 px-3 py-2 bg-[#081021] hover:bg-[#081021] text-green-600 text-base shadow-lg">
                         <CheckCheck className="h-5 w-5" />
                         CONFIRMADO
                       </Badge>
@@ -399,7 +399,7 @@ export function SportSelection() {
                         </div>
                       )}
                       
-                      <Button className="w-full text-black hover:text-white">
+                      <Button className="w-full text-white hover:text-white bg-[#081021] hover:bg-black">
                         <Eye className="h-4 w-4" />
                         Ver Detalhes
                       </Button>
@@ -413,11 +413,11 @@ export function SportSelection() {
                 return (
                   <Card 
                     key={sport.id} 
-                    className="hover:shadow-lg transition-shadow cursor-pointer border-2 border-yellow-500 bg-yellow-50 dark:bg-yellow-600 dark:hover:bg-yellow-700 relative"
+                    className="hover:shadow-lg transition-shadow cursor-pointer bg-yellow-50 dark:bg-yellow-500 dark:hover:bg-yellow-600 relative"
                     onClick={() => handleSportSelect(sport.id)}
                   >
                     <div className="absolute top-2 right-2 z-10">
-                      <Badge className="flex items-center gap-1 px-3 py-2 bg-black hover:bg-black text-yellow-500 text-base shadow-lg">
+                      <Badge className="flex items-center gap-1 px-3 py-2 bg-[#081021] hover:bg-[#081021] text-yellow-500 text-base shadow-lg">
                         <Clock className="h-5 w-5" />
                         AGUARDANDO VAGA
                       </Badge>
@@ -432,7 +432,7 @@ export function SportSelection() {
                     </CardHeader>
                     
                     <CardContent className="text-center">
-                      <Button className="w-full text-black hover:text-white">
+                      <Button className="w-full text-white hover:text-white bg-[#081021] hover:bg-black">
                         <Eye className="h-4 w-4" />
                         Ver Detalhes
                       </Button>
@@ -458,7 +458,7 @@ export function SportSelection() {
                   <div className="absolute top-2 right-2 z-10">
                     <Badge className={`text-white flex items-center gap-1 px-3 py-2 text-base shadow-lg ${
                       isFull 
-                        ? 'bg-black text-red-600 hover:bg-black' 
+                        ? 'bg-[#081021] text-red-600 hover:bg-[#081021]' 
                         : 'bg-green-500 hover:bg-green-500 text-black'
                     }`}>
                       {isFull 
@@ -477,7 +477,7 @@ export function SportSelection() {
                   </CardHeader>
                   
                   <CardContent className="text-center">
-                    <Button className="w-full text-black hover:text-white">
+                    <Button className="w-full text-black hover:text-white bg">
                       {isFull ? (
                         <>
                           <Clock className="inline-block  h-4 w-4" />

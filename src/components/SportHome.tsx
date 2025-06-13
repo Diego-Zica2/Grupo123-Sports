@@ -739,7 +739,7 @@ export function SportHome() {
                       <>
                         <Button 
                           onClick={handleConfirmPresence}
-                          className="flex-1"
+                          className="flex-1 text-black hover:text-white"
                           disabled={isGameFull}
                         >
                           <CheckCheck className="h-4 w-4" />
@@ -886,10 +886,19 @@ export function SportHome() {
                         </AlertDialogContent>
                       </AlertDialog>
                 </div>
-              )}
+              )}              
                 </CardContent>                
               </Card>
 
+              {userProfile?.role === 'admin' && (
+                <Button
+                  onClick={handleShowProcessedList}
+                  variant="outline"
+                  className="w-full bg-transparent border-primary text-primary hover:bg-primary hover:text-black mt-4"
+                >
+                  Processar Lista de Confirmados
+                </Button>
+              )}
               
 
               {showProcessedList && (
