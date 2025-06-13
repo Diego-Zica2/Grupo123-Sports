@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -33,6 +34,11 @@ interface UserConfirmation {
   guest_name?: string
 }
 
+interface UserWaitingStatus {
+  sport_id: string
+  in_waiting_list: boolean
+}
+
 interface SportAvailability {
   sport_id: string
   available_spots: number
@@ -46,6 +52,7 @@ export function SportSelection() {
   const [sports, setSports] = useState<Sport[]>([])
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [userConfirmations, setUserConfirmations] = useState<UserConfirmation[]>([])
+  const [userWaitingStatus, setUserWaitingStatus] = useState<UserWaitingStatus[]>([])
   const [sportAvailability, setSportAvailability] = useState<SportAvailability[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -54,6 +61,7 @@ export function SportSelection() {
     if (user) {
       fetchUserProfile()
       fetchUserConfirmations()
+      fetchUserWaitingStatus()
       fetchSportAvailability()
     }
   }, [user])
@@ -62,6 +70,7 @@ export function SportSelection() {
     const handleFocus = () => {
       if (user) {
         fetchUserConfirmations()
+        fetchUserWaitingStatus()
         fetchSportAvailability()
       }
     }
@@ -149,6 +158,47 @@ export function SportSelection() {
     }
   }
 
+  const fetchUserWaitingStatus = async () => {
+    if (!user) return
+
+    try {
+      const { data: userWaitingList } = await supabase
+        .from('waiting_list')
+        .select(`
+          id,
+          user_id,
+          games!inner(id, sport_id, date, visible)
+        `)
+        .eq('user_id', user.id)
+        .eq('games.visible', true)
+        .gte('games.date', new Date().toISOString().split('T')[0])
+        .order('created_at', { ascending: true })
+
+      const waitingMap = new Map<string, UserWaitingStatus>()
+      const sportGames = new Map<string, any>()
+
+      userWaitingList?.forEach(waiting => {
+        const game = waiting.games as any
+        const existing = sportGames.get(game.sport_id)
+        if (!existing || new Date(game.date) < new Date(existing.date)) {
+          sportGames.set(game.sport_id, game)
+        }
+      })
+
+      sportGames.forEach((game, sport_id) => {
+        waitingMap.set(sport_id, {
+          sport_id,
+          in_waiting_list: true
+        })
+      })
+
+      setUserWaitingStatus(Array.from(waitingMap.values()))
+    } catch (error) {
+      console.error('Error fetching waiting status:', error)
+      setUserWaitingStatus([])
+    }
+  }
+
   const fetchSportAvailability = async () => {
     try {
       const { data: games } = await supabase
@@ -214,6 +264,7 @@ export function SportSelection() {
     setTimeout(() => {
       if (user) {
         fetchUserConfirmations()
+        fetchUserWaitingStatus()
         fetchSportAvailability()
       }
     }, 1000)
@@ -239,6 +290,9 @@ export function SportSelection() {
 
   const getUserConfirmationForSport = (sportId: string) => 
     userConfirmations.find(conf => conf.sport_id === sportId)
+
+  const getUserWaitingStatusForSport = (sportId: string) =>
+    userWaitingStatus.find(waiting => waiting.sport_id === sportId)
 
   const getSportAvailability = (sportId: string) =>
     sportAvailability.find(avail => avail.sport_id === sportId)
@@ -309,6 +363,7 @@ export function SportSelection() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {sports.map((sport) => {
               const userConfirmation = getUserConfirmationForSport(sport.id)
+              const userWaiting = getUserWaitingStatusForSport(sport.id)
               const availability = getSportAvailability(sport.id)
               
               // Se o usuário está confirmado, usa o estilo verde
@@ -353,7 +408,40 @@ export function SportSelection() {
                 )
               }
 
-              // Se o usuário não está confirmado, verifica disponibilidade
+              // Se o usuário está na lista de espera, usa o estilo amarelo
+              if (userWaiting?.in_waiting_list) {
+                return (
+                  <Card 
+                    key={sport.id} 
+                    className="hover:shadow-lg transition-shadow cursor-pointer border-2 border-yellow-500 bg-yellow-50 dark:bg-yellow-600 dark:hover:bg-yellow-700 relative"
+                    onClick={() => handleSportSelect(sport.id)}
+                  >
+                    <div className="absolute top-2 right-2 z-10">
+                      <Badge className="flex items-center gap-1 px-3 py-2 bg-black hover:bg-black text-yellow-500 text-base shadow-lg">
+                        <Clock className="h-5 w-5" />
+                        AGUARDANDO VAGA
+                      </Badge>
+                    </div>
+                    
+                    <CardHeader className="text-center">
+                      <div className="text-7xl mb-4">{getSportIcon(sport.name)}</div>
+                      <CardTitle className="text-4xl">{sport.name}</CardTitle>
+                      <CardDescription className="text-white text-md">
+                        {getSportSchedule(sport)}
+                      </CardDescription>
+                    </CardHeader>
+                    
+                    <CardContent className="text-center">
+                      <Button className="w-full text-black hover:text-white">
+                        <Eye className="h-4 w-4" />
+                        Ver Detalhes
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )
+              }
+
+              // Se o usuário não está confirmado nem na lista de espera, verifica disponibilidade
               const isFull = availability?.is_full || false
               const availableSpots = availability?.available_spots || 0
 
