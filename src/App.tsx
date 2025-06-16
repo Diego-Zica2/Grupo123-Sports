@@ -12,7 +12,6 @@ import { UpdatePassword } from '@/components/auth/UpdatePassword';
 import { SportSelection } from '@/components/SportSelection';
 import { SportHome } from '@/components/SportHome';
 import { AdminPanel } from '@/components/AdminPanel';
-import { Documentation } from '@/components/Documentation';
 import { Footer } from '@/components/Footer';
 
 const queryClient = new QueryClient();
@@ -75,10 +74,6 @@ function AppContent() {
                   <AdminPanel />
                 </ProtectedRoute>
               } 
-            />
-            <Route 
-              path="/documentacao" 
-              element={<Documentation />} 
             />
             <Route 
               path="/reset-password" 
