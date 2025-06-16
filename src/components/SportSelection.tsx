@@ -280,12 +280,28 @@ export function SportSelection() {
 
   const getSportSchedule = (sport: Sport) => {
     const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
-    const brazilTime = new Date(`2000-01-01T${sport.time}:00`).toLocaleTimeString('pt-BR', {
+    const startDate = new Date(`2000-01-01T${sport.time}:00`)
+    const startTime = startDate.toLocaleTimeString('pt-BR', {
       hour: '2-digit',
       minute: '2-digit',
       timeZone: 'America/Sao_Paulo'
     })
-    return `${days[sport.day_of_week]} às ${brazilTime}`
+
+    // Calcula o horário final conforme o esporte
+    let endDate = new Date(startDate)
+    if (sport.name.toLowerCase() === 'vôlei') {
+      endDate.setHours(endDate.getHours() + 2)
+    } else if (sport.name.toLowerCase() === 'futebol') {
+      endDate.setMinutes(endDate.getMinutes() + 90)
+    }
+
+    const endTime = endDate.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'America/Sao_Paulo'
+    })
+
+    return `${days[sport.day_of_week]}: ${startTime} às ${endTime}`
   }
 
   const getUserConfirmationForSport = (sportId: string) => 

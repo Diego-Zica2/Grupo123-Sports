@@ -602,6 +602,27 @@ export function SportHome() {
     })
   }
 
+  const getGameTimeRange = (sportName: string, startTime: string) => {
+    const startDate = new Date(`2000-01-01T${startTime}:00`)
+    let endDate = new Date(startDate)
+    if (sportName.toLowerCase() === 'vôlei') {
+      endDate.setHours(endDate.getHours() + 2)
+    } else if (sportName.toLowerCase() === 'futebol') {
+      endDate.setMinutes(endDate.getMinutes() + 90)
+    }
+    const start = startDate.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'America/Sao_Paulo'
+    })
+    const end = endDate.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'America/Sao_Paulo'
+    })
+    return `${start} às ${end}`
+  }
+
   const getSportIcon = (sportName: string) => {
     switch (sportName?.toLowerCase()) {
       case 'vôlei':
@@ -707,7 +728,7 @@ export function SportHome() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{formatTime(nextGame.time)}</span>
+                      <span className="text-sm">{getGameTimeRange(sport?.name, nextGame.time)}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-muted-foreground" />

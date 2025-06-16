@@ -143,10 +143,7 @@ export function GameManagement() {
     }
   }
 
-  const handleDeleteGame = async (gameId: string) => {
-    if (!confirm('Tem certeza que deseja deletar este jogo? Esta ação não pode ser desfeita.')) {
-      return
-    }
+  const handleDeleteGame = async (gameId: string) => {  
 
     try {
       await supabase.from('game_confirmations').delete().eq('game_id', gameId)
