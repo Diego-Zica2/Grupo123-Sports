@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, CheckCircle } from 'lucide-react'
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -69,6 +69,14 @@ export function LoginForm() {
       setError('')
       await signUp(data.email, data.password, data.fullName)
       setSuccess('Conta criada com sucesso! Verifique seu email.')
+      signUpForm.reset() // Limpa o formulário
+  
+      // Remove o alerta após 5 segundos
+      setTimeout(() => {
+        setSuccess('')
+        // (Opcional) Trocar para a aba de login automaticamente
+        setActiveTab('login')
+      }, 5000)
     } catch (err: any) {
       setError(err.message || 'Erro ao criar conta')
     } finally {
@@ -119,8 +127,11 @@ export function LoginForm() {
                 </Alert>
               )}
               {success && (
-                <Alert>
-                  <AlertDescription>{success}</AlertDescription>
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    <CheckCircle className="mr-2 inline text-green-500" />
+                    {success}
+                  </AlertDescription>
                 </Alert>
               )}
               
@@ -262,8 +273,11 @@ export function LoginForm() {
                   </Alert>
                 )}
                 {success && (
-                  <Alert>
-                    <AlertDescription>{success}</AlertDescription>
+                  <Alert className="bg-green-500 text-black">   
+                    <AlertDescription>
+                      <CheckCircle className="mr-2 inline text-black" />
+                      {success}
+                    </AlertDescription>
                   </Alert>
                 )}
                 
