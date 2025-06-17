@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -10,9 +11,6 @@ import { GameManagement } from '@/components/admin/GameManagement'
 import { UserManagement } from '@/components/admin/UserManagement'
 import { DomainManagement } from '@/components/admin/DomainManagement'
 import { AtSign, Gamepad2, UsersRound } from 'lucide-react'
-import { HeaderDropdown } from './HeaderDropdown'
-import { Link } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
 
 interface UserProfile {
   id: string
@@ -99,19 +97,37 @@ export function AdminPanel() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/sports">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar
-              </Link>
-            </Button>
-            <h1 className="text-2xl font-bold text-primary">Painel Administrativo</h1>
+          <div className="flex items-center space-x-4">
+            <div className="mx-auto mb-1 h-full w-full rounded-lg flex items-center justify-center">
+              <a href="/" aria-label="Home">
+                <img
+                  src="/lovable-uploads/dark-logogrupo123.png"
+                  alt="Logo"
+                  className="cursor-pointer h-full w-auto object-contain dark:block hidden"
+                />
+                <img
+                  src="/lovable-uploads/light-logogrupo123.png"
+                  alt="Logo"
+                  className="cursor-pointer h-full w-auto object-contain dark:hidden block"
+                />
+              </a>
+            </div>
           </div>
-          <HeaderDropdown />
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/')}
+              className="mr-2"
+            >
+              Voltar aos Esportes
+            </Button>
+            {/* <ThemeToggle /> */}
+            <Button variant="outline" onClick={signOut}>
+              Sair
+            </Button>
+          </div>
         </div>
       </header>
 
