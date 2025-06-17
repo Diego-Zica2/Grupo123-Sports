@@ -1,16 +1,17 @@
+
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useQuery } from "@tanstack/react-query";
-import { getSports } from '@/services/sportService';
+import { getSports, Sport } from '@/services/sportService';
 import { ArrowRight, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { HeaderDropdown } from './HeaderDropdown'
 
 export function SportSelection() {
   const { user } = useAuth();
-  const [sports, setSports] = useState<any[]>([]);
+  const [sports, setSports] = useState<Sport[]>([]);
   const { data, isLoading, isError } = useQuery({
     queryKey: ['sports'],
     queryFn: getSports,
