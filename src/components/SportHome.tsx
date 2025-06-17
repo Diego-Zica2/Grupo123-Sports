@@ -19,6 +19,9 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog'
+import { HeaderDropdown } from './HeaderDropdown'
+import { Link } from 'react-router-dom'
+import { ArrowLeft, Shield } from 'lucide-react'
 
 interface Sport {
   id: string
@@ -663,39 +666,28 @@ export function SportHome() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate('/sports')}
-              className="text-sm bg-secondary hover:bg-primary"
-            >
-              ← Voltar
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/sports">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Voltar
+              </Link>
             </Button>
-            <div className="flex items-center space-x-2">
-              <span className="text-2xl">{getSportIcon(sport.name)}</span>
-              <div>
-                <h1 className="text-lg font-semibold">{sport.name}</h1>
-                <p className="text-sm text-muted-foreground">
-                  {userProfile?.full_name || user?.email}
-                </p>
-              </div>
-            </div>
+            <h1 className="text-2xl font-bold text-primary">Grupo123 Sports</h1>
           </div>
-          <div className="flex items-center space-x-2">
-            {userProfile?.role === 'admin' && (
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/admin')}
-                className="mr-2"
-              >
-                Admin
+          <div className="flex items-center gap-4">
+            {user?.role === 'admin' && (
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/admin">
+                  <Shield className="h-4 w-4 mr-2" />
+                  Admin
+                </Link>
               </Button>
             )}
-            <Button variant="outline" onClick={signOut}>
-              Sair
-            </Button>
+            <HeaderDropdown />
           </div>
         </div>
       </header>

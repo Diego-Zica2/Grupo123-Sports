@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -13,6 +12,8 @@ import { SportSelection } from '@/components/SportSelection';
 import { SportHome } from '@/components/SportHome';
 import { AdminPanel } from '@/components/AdminPanel';
 import { Footer } from '@/components/Footer';
+import { Regras } from '@/components/Regras';
+import { Documentacao } from '@/components/Documentacao';
 
 const queryClient = new QueryClient();
 
@@ -72,6 +73,22 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <AdminPanel />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/regras" 
+              element={
+                <ProtectedRoute>
+                  <Regras />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/documentacao" 
+              element={
+                <ProtectedRoute>
+                  <Documentacao />
                 </ProtectedRoute>
               } 
             />
