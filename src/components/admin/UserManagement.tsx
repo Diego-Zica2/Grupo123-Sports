@@ -12,7 +12,7 @@ interface User {
   id: string
   email: string
   full_name: string
-  role: 'admin' | 'player'
+  role: 'admin' | 'player' | 'moderador_volei' | 'moderador_futebol'
   created_at: string
 }
 
@@ -37,7 +37,7 @@ export function UserManagement() {
       
       const typedUsers: User[] = (data || []).map(user => ({
         ...user,
-        role: user.role as 'admin' | 'player'
+        role: user.role as 'admin' | 'player' | 'moderador_volei' | 'moderador_futebol'
       }))
       
       setUsers(typedUsers)
@@ -49,7 +49,7 @@ export function UserManagement() {
     }
   }
 
-  const updateUserRole = async (userId: string, newRole: 'admin' | 'player') => {
+  const updateUserRole = async (userId: string, newRole: 'admin' | 'player' | 'moderador_volei' | 'moderador_futebol') => {
     setUpdatingUser(userId)
     
     try {
@@ -60,7 +60,14 @@ export function UserManagement() {
 
       if (error) throw error
 
-      toast.success(`Usuário ${newRole === 'admin' ? 'promovido a administrador' : 'definido como jogador'}`)
+      const roleNames = {
+        admin: 'administrador',
+        player: 'jogador',
+        moderador_volei: 'moderador de vôlei',
+        moderador_futebol: 'moderador de futebol'
+      }
+
+      toast.success(`Usuário definido como ${roleNames[newRole]}`)
       
       // Atualizar o estado local imediatamente
       setUsers(prevUsers => 
@@ -102,6 +109,35 @@ export function UserManagement() {
       toast.error('Erro ao deletar usuário')
     } finally {
       setDeletingUser(null)
+    }
+  }
+
+  const getRoleDisplayName = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'Administrador'
+      case 'player':
+        return 'Jogador'
+      case 'moderador_volei':
+        return 'Moderador Vôlei'
+      case 'moderador_futebol':
+        return 'Moderador Futebol'
+      default:
+        return role
+    }
+  }
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'bg-black text-red-500'
+      case 'moderador_volei':
+        return 'bg-black text-blue-500'
+      case 'moderador_futebol':
+        return 'bg-black text-yellow-500'
+      case 'player':
+      default:
+        return 'bg-black text-green-500'
     }
   }
 
@@ -147,12 +183,8 @@ export function UserManagement() {
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        user.role === 'admin' 
-                          ? 'bg-black text-red-500' 
-                          : 'bg-black text-green-500'
-                      }`}>
-                        {user.role === 'admin' ? 'Administrador' : 'Jogador'}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
+                        {getRoleDisplayName(user.role)}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -162,16 +194,18 @@ export function UserManagement() {
                       <div className="flex items-center space-x-2">
                         <Select
                           value={user.role}
-                          onValueChange={(value: 'admin' | 'player') => 
+                          onValueChange={(value: 'admin' | 'player' | 'moderador_volei' | 'moderador_futebol') => 
                             updateUserRole(user.id, value)
                           }
                           disabled={updatingUser === user.id}
                         >
-                          <SelectTrigger className="w-32">
+                          <SelectTrigger className="w-40">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="player">Jogador</SelectItem>
+                            <SelectItem value="moderador_volei">Moderador Vôlei</SelectItem>
+                            <SelectItem value="moderador_futebol">Moderador Futebol</SelectItem>
                             <SelectItem value="admin">Admin</SelectItem>
                           </SelectContent>
                         </Select>

@@ -33,7 +33,11 @@ interface Game {
   sport?: Sport
 }
 
-export function GameManagement() {
+interface GameManagementProps {
+  userRole: 'admin' | 'player' | 'moderador_volei' | 'moderador_futebol'
+}
+
+export function GameManagement({ userRole }: GameManagementProps) {
   const [sports, setSports] = useState<Sport[]>([])
   const [activeGames, setActiveGames] = useState<Game[]>([])
   const [loading, setLoading] = useState(true)
@@ -62,11 +66,16 @@ export function GameManagement() {
 
   const fetchData = async () => {
     try {
-      const { data: sportsData, error: sportsError } = await supabase
-        .from('sports')
-        .select('*')
-        .order('name')
+      // Filtrar esportes baseado no papel do usuário
+      let sportsQuery = supabase.from('sports').select('*').order('name')
+      
+      if (userRole === 'moderador_volei') {
+        sportsQuery = sportsQuery.eq('name', 'Vôlei')
+      } else if (userRole === 'moderador_futebol') {
+        sportsQuery = sportsQuery.eq('name', 'Futebol')
+      }
 
+      const { data: sportsData, error: sportsError } = await sportsQuery
       if (sportsError) throw sportsError
       setSports(sportsData || [])
 
@@ -97,6 +106,13 @@ export function GameManagement() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const canEditGame = (game: Game) => {
+    if (userRole === 'admin') return true
+    if (userRole === 'moderador_volei' && game.sport?.name === 'Vôlei') return true
+    if (userRole === 'moderador_futebol' && game.sport?.name === 'Futebol') return true
+    return false
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -144,7 +160,6 @@ export function GameManagement() {
   }
 
   const handleDeleteGame = async (gameId: string) => {  
-
     try {
       await supabase.from('game_confirmations').delete().eq('game_id', gameId)
       await supabase.from('guests').delete().eq('game_id', gameId)
@@ -256,45 +271,49 @@ export function GameManagement() {
         <CardHeader className='text-center'>
           <CardTitle>Criar Novo Jogo</CardTitle>
           <CardDescription>
-            <p>Adicione um novo jogo para qualquer esporte cadastrado.</p> 
+            <p>Adicione um novo jogo {userRole === 'moderador_volei' ? 'de Vôlei' : userRole === 'moderador_futebol' ? 'de Futebol' : 'para qualquer esporte cadastrado'}.</p> 
             <p>O jogo anterior será automaticamente desabilitado.</p>
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Botões de preenchimento rápido */}
+          {/* Botões de preenchimento rápido - só mostrar se o usuário pode criar esses jogos */}
           <div className="flex flex-col gap-2 mb-6 sm:flex-row sm:gap-4 justify-center">
-            <Button
-              type="button"
-              onClick={() => {
-                setFormData({
-                  sport_id: getSportIdByName('Vôlei'),
-                  date: getNextWeekdayDate(6),
-                  time: '12:00',
-                  location: 'Arena Túnel - Quadra 01 | Entrada pela Rua Itaguara 55, BH-MG',
-                  google_maps_link: 'https://maps.app.goo.gl/Gzh9c2FREp2dGzCB6',
-                  max_players: 24
-                });
-              }}              
-              className="flex items-center gap-2 w-full sm:w-auto bg-green-600 hover:bg-primary text-black"
-            >
-              🏐 Criar Jogo Padrão Vôlei
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                setFormData({
-                  sport_id: getSportIdByName('Futebol'),
-                  date: getNextWeekdayDate(4),
-                  time: '19:00',
-                  location: 'Rua Mariana, Praça 12 de Dezembro, 654 - Bonfim, BH-MG',
-                  google_maps_link: 'https://maps.app.goo.gl/PHTsUSM8tyBqKAUv7',
-                  max_players: 16
-                });
-              }}              
-              className="flex items-center gap-2 w-full sm:w-auto bg-green-600 hover:bg-primary text-black"
-            >
-              ⚽ Criar Jogo Padrão Futebol
-            </Button>
+            {(userRole === 'admin' || userRole === 'moderador_volei') && (
+              <Button
+                type="button"
+                onClick={() => {
+                  setFormData({
+                    sport_id: getSportIdByName('Vôlei'),
+                    date: getNextWeekdayDate(6),
+                    time: '12:00',
+                    location: 'Arena Túnel - Quadra 01 | Entrada pela Rua Itaguara 55, BH-MG',
+                    google_maps_link: 'https://maps.app.goo.gl/Gzh9c2FREp2dGzCB6',
+                    max_players: 24
+                  });
+                }}              
+                className="flex items-center gap-2 w-full sm:w-auto bg-green-600 hover:bg-primary text-black"
+              >
+                🏐 Criar Jogo Padrão Vôlei
+              </Button>
+            )}
+            {(userRole === 'admin' || userRole === 'moderador_futebol') && (
+              <Button
+                type="button"
+                onClick={() => {
+                  setFormData({
+                    sport_id: getSportIdByName('Futebol'),
+                    date: getNextWeekdayDate(4),
+                    time: '19:00',
+                    location: 'Rua Mariana, Praça 12 de Dezembro, 654 - Bonfim, BH-MG',
+                    google_maps_link: 'https://maps.app.goo.gl/PHTsUSM8tyBqKAUv7',
+                    max_players: 16
+                  });
+                }}              
+                className="flex items-center gap-2 w-full sm:w-auto bg-green-600 hover:bg-primary text-black"
+              >
+                ⚽ Criar Jogo Padrão Futebol
+              </Button>
+            )}
           </div>
           <p className="border-b w-full mx-auto mb-6"></p>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -457,7 +476,7 @@ export function GameManagement() {
                       )}
                     </div>
                     <div className="flex gap-2 mt-2 sm:mt-0">
-                      {editingGameId !== game.id && (
+                      {editingGameId !== game.id && canEditGame(game) && (
                         <Button
                           className="bg-green-500 hover:bg-green-600 text-black"
                           size="sm"
@@ -466,30 +485,32 @@ export function GameManagement() {
                           <FilePenLine className="h-4 w-4" />
                         </Button>
                       )}
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button className="bg-red-500 hover:bg-red-600 text-black" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Tem certeza que deseja remover a partida de <strong>{game.sport?.name}</strong> marcada para <strong>{formatDate(game.date)}</strong> às <strong>{formatTime(game.time)}</strong>?<br />
-                              Esta ação não pode ser desfeita.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteGame(game.id)}
-                            >
-                              Excluir
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      {canEditGame(game) && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button className="bg-red-500 hover:bg-red-600 text-black" size="sm">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja remover a partida de <strong>{game.sport?.name}</strong> marcada para <strong>{formatDate(game.date)}</strong> às <strong>{formatTime(game.time)}</strong>?<br />
+                                Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteGame(game.id)}
+                              >
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </div>
                   </div>
                 </div>

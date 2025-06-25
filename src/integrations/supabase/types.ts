@@ -66,7 +66,7 @@ export type Database = {
       games: {
         Row: {
           created_at: string | null
-          created_by: string
+          created_by: string | null
           date: string
           google_maps_link: string | null
           id: string
@@ -78,7 +78,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          created_by: string
+          created_by?: string | null
           date: string
           google_maps_link?: string | null
           id?: string
@@ -90,7 +90,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          created_by?: string
+          created_by?: string | null
           date?: string
           google_maps_link?: string | null
           id?: string
