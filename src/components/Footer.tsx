@@ -7,7 +7,7 @@ export function Footer() {
       <div className="container mx-auto px-4 py-6">
         <div className="text-center">
           <p className="text-sm text-muted-foreground">
-            Desenvolvido por: DiegoZica • 2025
+            Developed by Diego Zica & A.I. • 2025
           </p>
         </div>
       </div>
