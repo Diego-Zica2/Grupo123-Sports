@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = 'https://pnbgkjfzynbrnoeacjwu.supabase.co'
@@ -10,7 +11,7 @@ export interface User {
   id: string
   email: string
   full_name: string
-  role: 'admin' | 'player' | 'moderador_volei' | 'moderador_futebol'
+  role: 'admin' | 'player'
   created_at: string
 }
 

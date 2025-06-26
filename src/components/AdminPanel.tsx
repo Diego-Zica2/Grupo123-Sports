@@ -16,7 +16,7 @@ interface UserProfile {
   id: string
   email: string
   full_name: string
-  role: 'admin' | 'player' | 'moderador_volei' | 'moderador_futebol'
+  role: 'admin' | 'player'
   created_at: string
 }
 
@@ -46,12 +46,12 @@ export function AdminPanel() {
       
       const profileData: UserProfile = {
         ...data,
-        role: data.role as 'admin' | 'player' | 'moderador_volei' | 'moderador_futebol'
+        role: data.role as 'admin' | 'player'
       }
       setUserProfile(profileData)
 
-      // Verificar se o usuário tem permissão
-      if (!['admin', 'moderador_volei', 'moderador_futebol'].includes(profileData.role)) {
+      // Verificar se o usuário é admin
+      if (profileData.role !== 'admin') {
         navigate('/')
         return
       }
@@ -75,7 +75,7 @@ export function AdminPanel() {
     )
   }
 
-  if (!userProfile || !['admin', 'moderador_volei', 'moderador_futebol'].includes(userProfile.role)) {
+  if (!userProfile || userProfile.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-96">
@@ -94,10 +94,6 @@ export function AdminPanel() {
       </div>
     )
   }
-
-  const isAdmin = userProfile.role === 'admin'
-  const isModeradorVolei = userProfile.role === 'moderador_volei'
-  const isModeradorFutebol = userProfile.role === 'moderador_futebol'
 
   return (
     <div className="min-h-screen bg-background">
@@ -127,6 +123,7 @@ export function AdminPanel() {
             >
               Voltar aos Esportes
             </Button>
+            {/* <ThemeToggle /> */}
             <Button variant="outline" onClick={signOut}>
               Sair
             </Button>
@@ -139,43 +136,25 @@ export function AdminPanel() {
           <h1 className="text-lg font-semibold">Painel Administrativo</h1>
           <h1 className="text-lg font-semibold">Bem-vindo, {userProfile?.full_name || user?.email}</h1>        
         </div>
-        
-        {isAdmin ? (
-          <Tabs defaultValue="games" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="games"><Gamepad2 className="h-5 w-5" /></TabsTrigger>
-              <TabsTrigger value="users"><UsersRound className="h-5 w-5" /></TabsTrigger>
-              <TabsTrigger value="domains"><AtSign className="h-5 w-5" /></TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="games" className="mt-6">
-              <GameManagement userRole={userProfile.role} />
-            </TabsContent>
-            
-            <TabsContent value="users" className="mt-6">
-              <UserManagement />
-            </TabsContent>
+        <Tabs defaultValue="games" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="games"><Gamepad2 className="h-5 w-5" /></TabsTrigger>
+            <TabsTrigger value="users"><UsersRound className="h-5 w-5" /></TabsTrigger>
+            <TabsTrigger value="domains"><AtSign className="h-5 w-5" /></TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="games" className="mt-6">
+            <GameManagement />
+          </TabsContent>
+          
+          <TabsContent value="users" className="mt-6">
+            <UserManagement />
+          </TabsContent>
 
-            <TabsContent value="domains" className="mt-6">
-              <DomainManagement />
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <div className="w-full">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gerenciar Jogos</CardTitle>
-                <CardDescription>
-                  {isModeradorVolei && 'Gerencie os jogos de Vôlei'}
-                  {isModeradorFutebol && 'Gerencie os jogos de Futebol'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <GameManagement userRole={userProfile.role} />
-              </CardContent>
-            </Card>
-          </div>
-        )}
+          <TabsContent value="domains" className="mt-6">
+            <DomainManagement />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   )
