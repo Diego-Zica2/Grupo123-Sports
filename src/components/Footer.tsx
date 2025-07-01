@@ -52,7 +52,7 @@ export function Footer() {
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Fechar</AlertDialogCancel>
+                <AlertDialogCancel className="flex justify-center">Fechar</AlertDialogCancel>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
